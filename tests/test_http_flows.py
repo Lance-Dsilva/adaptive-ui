@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from fastapi.testclient import TestClient
 
 from backend.main import create_app
+from backend.settings import load_settings
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -90,6 +91,16 @@ class HTTPFlowTests(unittest.TestCase):
                 })
                 self.assertNotIn("OPENAI", response.text)
                 self.assertNotIn("test-secret", response.text)
+
+    def test_hosted_model_setting_accepts_shell_style_quotes(self):
+        for model in ('gpt-5-mini', '"gpt-5-mini"', " 'gpt-5-mini' ", '""'):
+            with self.subTest(model=model), tempfile.TemporaryDirectory() as root, patch.dict(
+                "os.environ", {"OPENAI_API_KEY": "fixture-key", "OPENAI_MODEL": model}, clear=True,
+            ):
+                self.assertEqual(load_settings(Path(root)), {
+                    "OPENAI_API_KEY": "fixture-key",
+                    "OPENAI_MODEL": "gpt-5-mini",
+                })
 
     def test_hosted_app_disables_local_test_drive_storage(self):
         from app import app
