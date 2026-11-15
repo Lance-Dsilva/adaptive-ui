@@ -132,6 +132,6 @@ Copy `.env.example` to `.env` and enter `OPENAI_API_KEY` locally. The server rea
 
 The app includes sourced vehicle details, specifications, price breakdowns, color options, image galleries, financing observations and an estimate calculator. Verified exterior rotation frames are cached locally and rendered with drag, zoom, reset, and keyboard controls for supported configurations. See `docs/research/3d-asset-audit.md` for current coverage. Unsupported configurations retain a clearly labelled photo fallback; no verified 3D mesh is available.
 
-The chat menu opens a test-drive request form with review and local persistence. Requests are saved in ignored `data/local/test_drive_requests.csv`, with atomic writes and idempotent retries. They have requested status and require dealership confirmation. The repository contains no live availability schedule.
+The chat menu opens a test-drive demo. After review, the app validates the vehicle and preferred time, clears the form, and confirms that the demo completed. The demo does not collect contact information, save submissions, or book appointments.
 
 See `docs/verification/mockup-list-and-viewer.md` for current local tests and interaction checks. A passing local catalog check is not public GA approval. Remaining areas include unsupported media/configurations, physical-device and assistive-technology coverage, arbitrary live-model reliability, production operations, and dealership integration if real appointment confirmation is required.

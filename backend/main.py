@@ -9,11 +9,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Annotated, Literal
-from uuid import UUID
 from datetime import date, time, datetime
 from zoneinfo import ZoneInfo
 
 from .conversation import curate, selection_for, filter_records
+from .appointments import test_drive
 from .openai_runtime import OpenAIRuntimeError
 from starlette.concurrency import run_in_threadpool
 
@@ -39,9 +39,6 @@ class TestDriveRequest(BaseModel):
     model_id: str = Field(min_length=1, max_length=100)
     requested_date: date
     requested_time: time
-    name: str = Field(min_length=1, max_length=120)
-    email: str = Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-    idempotency_key: UUID
 
 
 class TranscriptMessage(BaseModel):
@@ -140,12 +137,12 @@ def create_app(
         return [{"id": row["model_id"], "name": row["name"], "year": 2027} for row in result["records"]]
 
     @service.post("/test-drive-requests")
-    def test_drive(body: TestDriveRequest) -> dict:
+    def submit_test_drive(body: TestDriveRequest, response: Response) -> dict:
         if not test_drive_enabled:
             raise HTTPException(status_code=503, detail="Contact the dealership to request a test drive.")
-        from .appointments import create_request
         try:
-            return create_request(project_root, body.model_dump(mode="json"))
+            response.headers["Cache-Control"] = "no-store"
+            return test_drive(project_root, **body.model_dump())
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from None
 
@@ -252,7 +249,7 @@ def create_app(
                 else:
                     domain_tool, ui_tool = VEHICLE_ACTION_TOOLS[intent]
                     arguments = {"model_id": action.model_id}
-                    if action.trim_id and action.intent != "financing":
+                    if action.trim_id:
                         arguments["trim_id"] = action.trim_id
                     if action.intent == "financing":
                         arguments["as_of"] = datetime.now(ZoneInfo("America/Chicago")).date().isoformat()

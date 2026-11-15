@@ -1,13 +1,11 @@
-"""Exercise HTTP contracts using repository CSVs and isolated request storage."""
+"""Exercise HTTP contracts using repository CSV fixtures."""
 
 import csv
-import shutil
 import tempfile
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
-from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from fastapi.testclient import TestClient
@@ -102,65 +100,38 @@ class HTTPFlowTests(unittest.TestCase):
                     "OPENAI_MODEL": "gpt-6-luna",
                 })
 
-    def test_hosted_app_disables_local_test_drive_storage(self):
-        from app import app
-
-        with TestClient(app) as client, patch("backend.appointments.create_request") as save:
-            self.assertFalse(client.get("/capabilities").json()["test_drive_enabled"])
-            response = client.post("/test-drive-requests", json={
-                "model_id": "us-2027-cx5", "requested_date": "2027-01-15",
-                "requested_time": "15:00", "name": "Test Customer",
-                "email": "test@example.invalid", "idempotency_key": "0c8a648c-81a1-4295-8c38-1f087408428d",
-            })
-            self.assertEqual(response.status_code, 503)
-            save.assert_not_called()
-
     def test_chat_rejects_invalid_messages_before_processing(self):
         with patch("backend.main.load_settings", side_effect=AssertionError("Invalid chat reached processing")):
             for message in ("", "x" * 2001):
                 with self.subTest(length=len(message)):
                     self.assertEqual(self.client.post("/chat", json={"message": message}).status_code, 422)
 
-    def test_local_request_creation_retries_and_errors_are_isolated(self):
-        with tempfile.TemporaryDirectory(prefix="adaptive-ui-http-") as directory:
-            root = Path(directory)
-            data = root / "data/mazda/us/2027"
-            data.mkdir(parents=True)
-            for filename in ("models.csv", "trims.csv"):
-                shutil.copyfile(ROOT / "data/mazda/us/2027" / filename, data / filename)
-            tomorrow = (datetime.now(ZoneInfo("America/Chicago")) + timedelta(days=2)).date().isoformat()
-            payload = {
-                "model_id": "us-2027-cx5",
-                "requested_date": tomorrow,
-                "requested_time": "12:30",
-                "name": "HTTP Test Customer",
-                "email": "http-test@example.invalid",
-                "idempotency_key": str(uuid4()),
-            }
-            # Patch the destination only for appointment calls; registry fixtures remain real.
-            with patch("backend.main.project_root", root):
-                first = self.client.post("/test-drive-requests", json=payload)
-                second = self.client.post("/test-drive-requests", json=payload)
-                self.assertEqual(first.status_code, 200, first.text)
-                self.assertEqual(second.status_code, 200, second.text)
-                self.assertEqual(first.json(), second.json())
-                self.assertEqual(first.json()["status"], "requested")
-                self.assertEqual(first.json()["timezone"], "America/Chicago")
-                self.assertEqual(first.json()["requested_time"], "12:30")
-                self.assertNotIn("email", first.json())
-                errors = [
-                    payload | {"email": "different@example.invalid"},
-                    payload | {"idempotency_key": str(uuid4()), "model_id": "unknown"},
-                    payload | {"idempotency_key": str(uuid4()), "requested_date": "2000-01-01"},
-                    payload | {"idempotency_key": str(uuid4()), "email": "invalid"},
-                    payload | {"idempotency_key": "invalid-key"},
-                ]
-                for invalid in errors:
-                    with self.subTest(payload=invalid):
-                        self.assertEqual(self.client.post("/test-drive-requests", json=invalid).status_code, 422)
+    def test_hosted_test_drive_accepts_without_storing_or_echoing_input(self):
+        from app import app
 
-            with (root / "data/local/test_drive_requests.csv").open(newline="", encoding="utf-8") as stream:
-                rows = list(csv.DictReader(stream))
-            self.assertEqual(len(rows), 1)
-            self.assertEqual(rows[0]["idempotency_key"], payload["idempotency_key"])
-            self.assertEqual(rows[0]["request_id"], first.json()["request_id"])
+        future = (datetime.now(ZoneInfo("America/Chicago")) + timedelta(days=2)).date()
+        payload = {
+            "model_id": "us-2027-cx5", "requested_date": future.isoformat(), "requested_time": "12:30",
+        }
+        with TestClient(app) as client:
+            self.assertTrue(client.get("/capabilities").json()["test_drive_enabled"])
+            accepted = client.post("/test-drive-requests", json=payload)
+            self.assertEqual(accepted.status_code, 200)
+            self.assertEqual(accepted.json(), {"status": "demo_accepted"})
+            self.assertEqual(accepted.headers["Cache-Control"], "no-store")
+            for change in ({"model_id": "unknown"}, {"requested_date": "2000-01-01"}, {"requested_time": "invalid"}):
+                with self.subTest(change=change):
+                    self.assertEqual(client.post("/test-drive-requests", json=payload | change).status_code, 422)
+
+    def test_financing_cards_include_starting_or_exact_trim_msrp(self):
+        for trim_id, amount in ((None, "29990"), ("us-2027-cx5-2-5-s-select-suv-awd-6at-2r", "32140")):
+            with self.subTest(trim=trim_id):
+                arguments = {"model_id": "us-2027-cx5"}
+                if trim_id:
+                    arguments["trim_id"] = trim_id
+                response = self.client.post("/catalog/presentation", json={
+                    "tool_name": "render_financing_offers", "arguments": arguments,
+                })
+                self.assertEqual(response.status_code, 200, response.text)
+                record = response.json()["blocks"][0]["props"]["records"][0]
+                self.assertEqual(record["vehicle_price_usd"], amount)

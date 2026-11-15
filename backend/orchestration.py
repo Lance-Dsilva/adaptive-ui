@@ -127,11 +127,15 @@ def _card_key(card: JSONObject) -> tuple[str, str]:
     props = card["props"]
     if component == "FinancingOffers" and isinstance(props.get("records"), list):
         records = props["records"]
-        scope = {(record.get("model_id"), record.get("as_of")) for record in records if isinstance(record, dict)}
+        scope = {
+            (record.get("model_id"), record.get("as_of"),
+             record.get("vehicle_price_usd"), record.get("vehicle_price_basis"))
+            for record in records if isinstance(record, dict)
+        }
         if records and len(scope) == 1 and all(isinstance(record, dict) for record in records):
-            model_id, as_of = next(iter(scope))
+            model_id, as_of, price, basis = next(iter(scope))
             if model_id and as_of:
-                props = {**props, "records": {"model_id": model_id, "as_of": as_of}}
+                props = {**props, "records": {"model_id": model_id, "as_of": as_of, "price": price, "basis": basis}}
                 return component, dumps(props, sort_keys=True, allow_nan=False)
         # Without a shared model and date, combine only identical offer sets.
         props = {**props, "records": sorted(dumps(record, sort_keys=True, allow_nan=False) for record in records)}

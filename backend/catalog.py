@@ -232,10 +232,11 @@ class Catalog:
         return self._envelope([record], rows, warnings)
 
     def get_financing_offers(
-        self, model_id: str, as_of: str, offer_type: str | None = None
+        self, model_id: str, as_of: str, offer_type: str | None = None, trim_id: str | None = None,
     ) -> dict:
         requested_date = date.fromisoformat(as_of)
-        model, _ = self._selection(model_id)
+        model, trims = self._selection(model_id, trim_id)
+        price = trims[0]["msrp_usd"] if trim_id else model["starting_msrp_usd"]
         offers = [
             row for row in self._read("offers")
             if row["model_id"] == model_id
@@ -254,7 +255,11 @@ class Catalog:
                 status = "expiry_unknown"
             else:
                 status = "within_recorded_expiry"
-            records.append({**row, "expiry_status": status, "as_of": as_of})
+            records.append({
+                **row, "expiry_status": status, "as_of": as_of,
+                "vehicle_price_usd": price,
+                "vehicle_price_basis": trims[0]["name"] if trim_id else "Starting MSRP",
+            })
             if status != "within_recorded_expiry":
                 warnings.append(f"{row['offer_id']}: {status}")
         if not offers:

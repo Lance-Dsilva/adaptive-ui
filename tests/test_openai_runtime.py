@@ -378,7 +378,8 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         for expected in (
             "no live dealership inventory connection",
             "contact a dealer, send calls or emails",
-            "saves a request on this computer only",
+            "does not save information or book a visit",
+            "AI sales assistant",
             "Do not ask for contact details in chat",
             "mean unknown, never zero",
             "without being plugged in",

@@ -299,6 +299,7 @@ function Details({ record }) {
       </button>
       {!color && <button className={!sequence ? 'vehicle-detail-photo-primary' : undefined} type="button"
         onClick={() => askAboutVehicle('photos', record, trim)}>View photos</button>}
+      <button type="button" onClick={() => askAboutVehicle('financing', record, trim)}>Financing</button>
     </div>
     {groups.size
       ? <VehicleSpecs groups={[...groups]} />
@@ -511,14 +512,16 @@ export function loanPayment(principal, apr, months) {
   return rate === 0 ? principal / months : principal * rate / -Math.expm1(-months * Math.log1p(rate));
 }
 
-function PaymentCalculator() {
-  const [values, setValues] = useState({ amount: '', down: '0', apr: '', months: '' });
+function PaymentCalculator({ defaults, priceBasis }) {
+  const [values, setValues] = useState(defaults);
   const amount = number(values.amount), down = number(values.down);
   const principal = amount !== null && down !== null && down >= 0 && down <= amount ? amount - down : null;
   const estimate = principal === null ? null : loanPayment(principal, number(values.apr), number(values.months));
   return <section className="payment-calculator">
     <h3>Estimate your payment</h3>
-    <p className="experience-note">Enter your own price, down payment, APR, and term. Taxes and fees are excluded unless included in your price.</p>
+    <p className="experience-note">{priceBasis === 'Starting MSRP' ? 'Uses the model’s starting MSRP. '
+      : priceBasis ? `Uses the ${priceBasis} trim’s MSRP. ` : ''}
+      Adjust any field. Taxes and fees are excluded unless included in your price.</p>
     <div className="calculator-inputs">
       {[['amount', 'Vehicle price ($)'], ['down', 'Down payment ($)'], ['apr', 'APR (%)'], ['months', 'Term (months)']].map(([key, label]) =>
         <label key={key}>{label}<input type="number" min={key === 'months' ? 1 : 0}
@@ -535,6 +538,15 @@ function PaymentCalculator() {
   </section>;
 }
 export function FinancingOffers({ records = [] }) {
+  const publishedApr = records.find(record => record.offer_type === 'apr' &&
+    record.expiry_status === 'within_recorded_expiry' && number(record.apr_percent) !== null);
+  const priceRecord = publishedApr ?? records[0];
+  const defaults = {
+    amount: priceRecord?.vehicle_price_usd ?? '',
+    down: '0',
+    apr: publishedApr?.apr_percent ?? '',
+    months: publishedApr?.term_months_max ?? '',
+  };
   return <section className="experience-card">
     <h3>Published financing information</h3>
     {!records.length && <p>Verified offer terms are unavailable for this selection.</p>}
@@ -551,6 +563,6 @@ export function FinancingOffers({ records = [] }) {
       <p>{record.eligibility}</p>
       <details><ReplySummary>Full offer details</ReplySummary><p>{record.geography}</p><p>{record.dealer_states}</p><p>{record.combinability}</p></details>
     </section>)}
-    <PaymentCalculator />
+    <PaymentCalculator defaults={defaults} priceBasis={priceRecord?.vehicle_price_basis} />
   </section>;
 }

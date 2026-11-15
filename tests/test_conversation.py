@@ -44,7 +44,7 @@ class ConversationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("no researched coverage for 2026", sections[0])
         self.assertFalse(self.calls)
         booking = await curate("Book a test drive", self.call_tool)
-        self.assertIn("not sent to a dealership", booking[0])
+        self.assertIn("does not save your details", booking[0])
 
     async def test_details_and_new_query_reset(self):
         sections = await curate("What can you tell me about the CX-5?", self.call_tool)
@@ -96,7 +96,7 @@ class ConversationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("snapshot covers Mazda3, CX-5, and CX-90", missing[0])
         booking = await curate("Schedule a test drive", self.call_tool)
         self.assertIn("Chat options, then Request test drive", booking[0])
-        self.assertIn("no appointment is confirmed", booking[0])
+        self.assertIn("or book an appointment", booking[0])
 
     async def test_followup_after_new_search_drops_stale_budget_and_model(self):
         selection = selection_for("Which of those is a plug-in hybrid?", [

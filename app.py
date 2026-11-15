@@ -2,4 +2,4 @@
 
 from backend.main import create_app
 
-app = create_app(test_drive_enabled=False)
+app = create_app()

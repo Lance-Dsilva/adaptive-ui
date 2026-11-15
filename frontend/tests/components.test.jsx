@@ -202,6 +202,26 @@ test('discovery merges year and body scope into the compact toolbar and shows re
   assert.doesNotMatch(applied, /Clear budget|Response context/);
 });
 
+test('financing estimator uses selected MSRP and a valid published zero APR', () => {
+  const record = {
+    offer_id: 'apr', model_year: 2027, offer_type: 'apr', vehicle_price_usd: '32140',
+    vehicle_price_basis: '2.5 S Select', apr_percent: '0', term_months_max: '36',
+    expiry_status: 'within_recorded_expiry',
+  };
+  const html = renderToStaticMarkup(<ResponseBlocks blocks={[{
+    type: 'ui', component: 'FinancingOffers', props: { records: [record] },
+  }]} />);
+  assert.match(html, /Vehicle price \(\$\)<input[^>]*value="32140"/);
+  assert.match(html, /APR \(%\)<input[^>]*value="0"/);
+  assert.match(html, /Term \(months\)<input[^>]*value="36"/);
+  assert.match(html, /month estimate/);
+  const expired = renderToStaticMarkup(<ResponseBlocks blocks={[{
+    type: 'ui', component: 'FinancingOffers',
+    props: { records: [{ ...record, expiry_status: 'expired' }] },
+  }]} />);
+  assert.match(expired, /APR \(%\)<input[^>]*value=""/);
+});
+
 test('web replies format inline emphasis and keep publisher links clickable', () => {
   const html = renderToStaticMarkup(<ResponseBlocks blocks={[{
     type: 'text', role: 'answer', text: 'The RX-7 launched in **March 1978**.',

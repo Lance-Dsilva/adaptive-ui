@@ -130,10 +130,8 @@ def filter_records(records: list[dict], selection: Selection) -> list[dict]:
 def _recovery(text: str) -> str | None:
     if re.search(r"book|appointment|test[ -]?drive|schedule", text):
         return (
-            "Open Chat options, then Request test drive, to save a local request with your "
-            "preferred model, date, time, and contact details. It is saved on this computer "
-            "only and is not sent to a dealership. No availability is checked and no "
-            "appointment is confirmed. Contact the dealership separately to arrange your visit."
+            "Open Chat options, then Request test drive, to try the demo form. "
+            "It does not save your details or book an appointment."
         )
     if re.search(r"in stock|inventory|dealer quote|out.the.door|buy now", text):
         return (
@@ -206,7 +204,7 @@ async def _vehicle_response(text: str, selection: Selection, record: dict, call_
             return ["Please specify the exact trim and seating configuration so I can use the correct price and equipment."]
         arguments["trim_id"] = matches[0]["trim_id"]
     if selection.mode == "financing":
-        arguments = {"model_id": model_id, "as_of": datetime.now(ZoneInfo("America/Chicago")).date().isoformat()}
+        arguments["as_of"] = datetime.now(ZoneInfo("America/Chicago")).date().isoformat()
         if "lease" in text:
             arguments["offer_type"] = "lease"
         result = await call_tool("get_financing_offers", arguments, "offers-1")

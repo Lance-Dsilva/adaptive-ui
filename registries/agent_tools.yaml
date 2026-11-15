@@ -77,7 +77,7 @@ tools:
       required: [trim_ids]
 
   - name: get_financing_offers
-    description: Read U.S. offers for a model with APR, term, eligibility, geography, source date, and expiry.
+    description: Read U.S. model offers and estimator MSRP. Pass an exact trim ID when known to use that trim's MSRP.
     implementation: backend.catalog:Catalog.get_financing_offers
     enabled: true
     reads: [models.csv, trims.csv, offers.csv, sources.csv]
@@ -87,6 +87,7 @@ tools:
       properties:
         model_id: {type: string}
         as_of: {type: string, format: date}
+        trim_id: {type: string}
         offer_type: {type: string, enum: [apr, loyalty_cash, lease]}
       required: [model_id, as_of]
     behavior:
