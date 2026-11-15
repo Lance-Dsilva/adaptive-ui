@@ -1,6 +1,6 @@
 import { ReplySummary } from './ReplyControls.jsx';
 import { useState } from 'react';
-import { askAboutVehicle, askShoppingQuestion, askToCompare } from './vehiclePrompts.js';
+import { askAboutVehicle, askShoppingQuestion, askToCompare, isFullFeatureComparison } from './vehiclePrompts.js';
 import VehicleVisualizer, { verifiedSequences } from './VehicleVisualization.jsx';
 import { VehicleEngineSpecs } from './VehicleEngineSpecs.jsx';
 import { isHttpsUrl as https } from './isHttpsUrl.js';
@@ -404,6 +404,8 @@ const comparisonMetrics = [
 
 export function CarComparison({ records = [], question = '' }) {
   const [edits, setEdits] = useState({});
+  const [featureGroup, setFeatureGroup] = useState('');
+  const allFeatures = isFullFeatureComparison(question);
   const picks = records.map(record => ({
     car: { year: record.model?.model_year, name: record.model?.name || record.name },
     trim: record.configuration_choices?.find(trim => trim.trim_id === edits[record.trim_id]) || record,
@@ -467,7 +469,7 @@ export function CarComparison({ records = [], question = '' }) {
   const exactFields = fields.filter(field => normalize(field).length >= 4 &&
     request.includes(` ${normalize(field)} `));
   const metrics = comparisonMetrics.filter(([, match]) => match.test(question));
-  const focus = metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
+  const focus = allFeatures ? [] : metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
   const overview = [...summary, ...additionalFacts];
   function comparisonRowsForFields(selectedFields) {
     return selectedFields.map(field => [factLabel(field), records.map(record =>
@@ -483,13 +485,32 @@ export function CarComparison({ records = [], question = '' }) {
     const amount = number(value);
     return Number.isInteger(amount) ? wholeDollarPrice.format(amount) : price(value);
   };
+  function rowsForGroup(group) {
+    const groupFields = [...new Set(records.flatMap(record => record.specifications
+      .filter(item => item.category === group).map(item => item.field)))];
+    return groupFields.map(field => [factLabel(field), records.map(record => {
+      const facts = record.specifications.filter(item => item.category === group && item.field === field);
+      return facts.length ? facts.map((item, index) => <span className="spec-value" key={index}>
+        {specValue(item)}{specificationNote(item.applicability) && <small>{specificationNote(item.applicability)}</small>}
+      </span>) : null;
+    })]);
+  }
+  const activeGroup = featureGroup || groups.find(group => /^key features$/i.test(group)) || 'overview';
   return <section className="vehicle-comparison">
     <header className="comparison-result-heading">
-      <h3>{focus.length ? `${focus.join(' & ')} comparison` : 'Your comparison'}</h3>
+      <h3>{allFeatures ? 'Feature comparison' : focus.length ? `${focus.join(' & ')} comparison` : 'Your comparison'}</h3>
       <button type="button" className="comparison-edit"
         onClick={() => askShoppingQuestion('Show all 2027 Mazda models.', true)}>Change cars</button>
     </header>
-    {focusedRows.length > 0 && <ComparisonFacts rows={focusedRows} records={records} />}
+    {allFeatures ? <section className="comparison-feature-browser">
+      <label>Feature category
+        <select value={activeGroup} onChange={event => setFeatureGroup(event.target.value)}>
+          <option value="overview">Overview</option>
+          {groups.map(group => <option key={group} value={group}>{factLabel(group)}</option>)}
+        </select>
+      </label>
+      <ComparisonFacts rows={activeGroup === 'overview' ? overview.slice(2) : rowsForGroup(activeGroup)} records={records} />
+    </section> : focusedRows.length > 0 && <ComparisonFacts rows={focusedRows} records={records} />}
     <div className="comparison-models">
       {records.map((record, index) => <div key={record.model?.name + index}>
         <ComparisonPhoto key={record.trim_id} record={record} showCaption />
@@ -513,8 +534,8 @@ export function CarComparison({ records = [], question = '' }) {
       </div>)}
     </div>
     {changed && <button className="comparison-edit compare-revised" type="button"
-      onClick={() => askToCompare(picks, focus.join(' and ').toLowerCase())}>Compare cars</button>}
-    {!focus.length && <dl className="comparison-costs" aria-label="Comparison pricing">
+      onClick={() => askToCompare(picks, allFeatures ? 'all features' : focus.join(' and ').toLowerCase())}>Compare cars</button>}
+    {!allFeatures && !focus.length && <dl className="comparison-costs" aria-label="Comparison pricing">
       {[['Base MSRP', 'msrp_usd'], ['Destination', 'destination_usd']].map(([label, field]) =>
         <div key={field}><dt>{label}</dt>{records.map((record, index) =>
           <dd key={record.trim_id || index}>
@@ -522,25 +543,18 @@ export function CarComparison({ records = [], question = '' }) {
             {formatComparisonPrice(record[field])}
           </dd>)}</div>)}
     </dl>}
-    <details className="comparison-group comparison-all-specs"><ReplySummary>Features &amp; specs</ReplySummary>
+    {!allFeatures && <details className="comparison-group comparison-all-specs"><ReplySummary>Features &amp; specs</ReplySummary>
     <ComparisonFacts rows={summary.slice(2)} records={records} />
     {additionalFacts.length > 0 && <details className="comparison-group"><ReplySummary>More performance and space</ReplySummary><ComparisonFacts rows={additionalFacts} records={records} /></details>}
     {groups.map(group => {
-      const fields = [...new Set(records.flatMap(record => (record.specifications || [])
-        .filter(item => item.category === group).map(item => item.field)))];
-      const rows = fields.map(field => [factLabel(field), records.map(record => {
-        const facts = (record.specifications || []).filter(item => item.category === group && item.field === field);
-        return facts.length ? facts.map((item, index) => <span className="spec-value" key={index}>
-          {specValue(item)}{specificationNote(item.applicability) && <small>{specificationNote(item.applicability)}</small>}
-        </span>) : null;
-      })]);
+      const rows = rowsForGroup(group);
       return <details className="comparison-group" key={group}>
-        <ReplySummary>{factLabel(group)} <span>{fields.length} attributes</span></ReplySummary>
+        <ReplySummary>{factLabel(group)} <span>{rows.length} attributes</span></ReplySummary>
         <ComparisonFacts rows={rows} records={records} />
       </details>;
     })}
     <p className="experience-note">Trim-group specifications may vary with seating. Verify the exact configuration.</p>
-    </details>
+    </details>}
   </section>;
 }
 

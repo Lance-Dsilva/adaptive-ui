@@ -5,6 +5,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as components from '../src/VehicleExperience.jsx';
+import { fullFeatureFollowup } from '../src/vehiclePrompts.js';
 
 const fixtures = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const { loanPayment } = components;
@@ -340,6 +341,25 @@ test('comparison uses semantic headers and retains full specification values', (
   assert.ok(html.includes('Horsepower · regular 87 AKI'));
   assert.ok(html.includes('Subscription required'));
   assert.ok(!html.includes('https://example.com/spec.pdf'));
+});
+
+test('all features keeps the active trims and shows their feature categories before pricing', () => {
+  const records = [
+    { trim_id: 'turbo-preferred', name: 'Turbo Preferred', model: { name: 'CX-90 Inline 6 Turbo' },
+      specifications: [{ category: 'key features', field: 'Seat material', value: 'Leather' }] },
+    { trim_id: 'phev-preferred', name: 'PHEV Preferred', model: { name: 'CX-90 Plug-in Hybrid' },
+      specifications: [{ category: 'key features', field: 'Seat material', value: 'Leatherette' }] },
+  ];
+  const block = { type: 'ui', component: 'CarComparison', props: { records, question: 'Compare all features' } };
+  assert.deepEqual(fullFeatureFollowup('Compare all features', [block]), {
+    intent: 'comparison', trim_ids: ['turbo-preferred', 'phev-preferred'], focus: 'all features',
+  });
+  assert.equal(fullFeatureFollowup('Compare all features of the CX-5 and Mazda3', [block]), null);
+  const html = renderToStaticMarkup(<ResponseBlocks blocks={[block]} />);
+  const firstView = html.slice(0, html.indexOf('class="comparison-models"'));
+  assert.ok(firstView.includes('Feature category') && firstView.includes('Seat material'));
+  assert.ok(firstView.includes('Leather') && firstView.includes('Leatherette'));
+  assert.ok(!html.includes('Comparison pricing'));
 });
 
 test('specific comparison puts the requested metric above the vehicle cards', () => {

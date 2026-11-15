@@ -439,6 +439,17 @@ svg { display: block; width: 24px; height: 24px; }
 .comparison-facts th:first-child { width:31%; }
 .comparison-facts td + td { border-left:1px solid #e8eaf0; }
 .comparison-facts thead th { font-size:11px; }
+.comparison-feature-browser label { display:grid; gap:6px; color:var(--muted); }
+.comparison-feature-browser select {
+  width:100%;
+  min-height:44px;
+  padding:8px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:white;
+  color:var(--ink);
+  font:inherit;
+}
 .comparison-models .comparison-photo { display:flex; flex-direction:column; }
 .comparison-models:has(.comparison-photo figcaption) .comparison-photo { height:170px; }
 .comparison-models .comparison-photo figcaption { flex:1; }

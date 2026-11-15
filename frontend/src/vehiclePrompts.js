@@ -6,6 +6,22 @@ const wording = {
   financing: 'Show me published financing information for',
 };
 
+export function isFullFeatureComparison(question) {
+  return /\b(?:all|every|full|complete)\s+(?:features?|specs?|specifications?|equipment)\b|\b(?:full|complete)\s+(?:vehicle\s+)?comparison\b/i.test(question);
+}
+
+export function fullFeatureFollowup(question, blocks) {
+  const target = question.toLowerCase().trim()
+    .replace(/^(?:compare|show(?: me)?|list|view)\s+(?:the\s+)?/, '')
+    .replace(/[.!?]+$/, '')
+    .replace(/\s+(?:for|on)\s+(?:both|these|those)(?:\s+(?:vehicles|cars|models))?$/, '');
+  if (!/^(?:all|every|full|complete)\s+(?:features?|specs?|specifications?|equipment|comparison)$/.test(target)) return null;
+  const card = blocks?.find(block => block.component === 'CarComparison');
+  const trimIds = card?.props?.records?.map(record => record.trim_id);
+  if (trimIds?.length !== 2 || !trimIds.every(Boolean) || trimIds[0] === trimIds[1]) return null;
+  return { intent: 'comparison', trim_ids: trimIds, focus: 'all features' };
+}
+
 export function askAboutVehicle(intent, vehicle, trim, color) {
   const model = vehicle.name.replace(/^Mazda\s+(?=Mazda)/i, '');
   const subject = [vehicle.model_year || vehicle.year, model, trim?.name].filter(Boolean).join(' ');
