@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ResponseBlocks, previousTurnsFor, responseText } from './ResponseBlocks.jsx';
-import { fullFeatureFollowup } from './vehiclePrompts.js';
+import { comparisonFollowup } from './vehiclePrompts.js';
 import './styles.css';
 
 const DISCOVER = 'Show me Mazda SUVs.';
@@ -109,7 +109,7 @@ function App() {
     const controller = new AbortController();
     activeRequest.current = controller;
     const previous = previousTurnsFor(turns, id, contextTurnId);
-    action ??= fullFeatureFollowup(text, previous.at(-1)?.blocks);
+    action ??= comparisonFollowup(text, previous.at(-1)?.blocks);
     const history = previous.map(turn => turn.message);
     const transcript = previous.flatMap(turn => [
       { role: 'user', content: turn.message },

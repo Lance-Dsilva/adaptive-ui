@@ -5,7 +5,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as components from '../src/VehicleExperience.jsx';
-import { fullFeatureFollowup } from '../src/vehiclePrompts.js';
+import { comparisonFollowup } from '../src/vehiclePrompts.js';
 
 const fixtures = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const { loanPayment } = components;
@@ -351,10 +351,10 @@ test('all features keeps the active trims and shows their feature categories bef
       specifications: [{ category: 'key features', field: 'Seat material', value: 'Leatherette' }] },
   ];
   const block = { type: 'ui', component: 'CarComparison', props: { records, question: 'Compare all features' } };
-  assert.deepEqual(fullFeatureFollowup('Compare all features', [block]), {
+  assert.deepEqual(comparisonFollowup('Compare all features', [block]), {
     intent: 'comparison', trim_ids: ['turbo-preferred', 'phev-preferred'], focus: 'all features',
   });
-  assert.equal(fullFeatureFollowup('Compare all features of the CX-5 and Mazda3', [block]), null);
+  assert.equal(comparisonFollowup('Compare all features of the CX-5 and Mazda3', [block]), null);
   const html = renderToStaticMarkup(<ResponseBlocks blocks={[block]} />);
   const firstView = html.slice(0, html.indexOf('class="comparison-models"'));
   assert.ok(firstView.includes('Feature category') && firstView.includes('Seat material'));
@@ -363,6 +363,39 @@ test('all features keeps the active trims and shows their feature categories bef
   const partial = renderToStaticMarkup(<components.CarComparison question="Compare all features"
     records={[records[0], { ...records[1], specifications: [] }]} />);
   assert.match(partial, /value="overview" selected="">Overview/);
+});
+
+test('engine specs follow-up keeps the exact trims and puts engine data first', () => {
+  const records = [
+    { trim_id: 'cx5-base', name: '2.5 S', model: { name: 'CX-5' }, msrp_usd: '29990',
+      specifications: [
+        { category: 'Engine', field: 'ENGINE TYPE', value: '2.5L four-cylinder' },
+        { category: 'Engine', field: 'DISPLACEMENT (CC)', value: '2488' },
+        { category: 'Engine', field: 'HORSEPOWER WITH 87 OCTANE UNLEADED FUEL', value: '187 hp' },
+        { category: 'Engine', field: 'TORQUE WITH 87 OCTANE UNLEADED FUEL', value: '186 lb-ft' },
+      ] },
+    { trim_id: 'cx90-select', name: '3.3 Turbo Select', model: { name: 'CX-90 Inline 6 Turbo' },
+      specifications: [
+        { category: 'Engine', field: 'ENGINE TYPE', value: '3.3L turbo inline-six' },
+        { category: 'Engine', field: 'ENGINE HORSEPOWER WITH REGULAR UNLEADED FUEL', value: '280 hp' },
+        { category: 'Engine', field: 'ENGINE TORQUE WITH REGULAR UNLEADED FUEL', value: '332 lb-ft' },
+        { category: 'Motor', field: 'HORSEPOWER', value: '16.6 hp' },
+      ] },
+  ];
+  const block = { type: 'ui', component: 'CarComparison', props: { records, question: 'engine specs' } };
+  const action = { intent: 'comparison', trim_ids: ['cx5-base', 'cx90-select'], focus: 'engine specs' };
+  assert.deepEqual(comparisonFollowup('Compare engine specs', [block]), action);
+  assert.deepEqual(comparisonFollowup('Compare their engines?', [block]), action);
+  assert.equal(comparisonFollowup('Compare engine specs for the CX-5 and Mazda3', [block]), null);
+  assert.equal(comparisonFollowup('Compare engine specs', []), null);
+  const html = renderToStaticMarkup(<ResponseBlocks blocks={[block]} />);
+  const firstView = html.slice(0, html.indexOf('class="comparison-models"'));
+  for (const text of ['Engine comparison', '2.5L four-cylinder', '3.3L turbo inline-six', '2488 cc',
+    '187 hp', '280 hp', '186 lb-ft', '332 lb-ft']) {
+    assert.ok(firstView.includes(text), text);
+  }
+  assert.ok(!firstView.includes('16.6 hp'));
+  assert.ok(!html.includes('Comparison pricing'));
 });
 
 test('specific comparison puts the requested metric above the vehicle cards', () => {

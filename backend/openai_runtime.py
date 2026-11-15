@@ -446,6 +446,7 @@ class OpenAIRuntime:
 
     async def vehicle_action_reply(self, prompt, intent, records, selected_color, *, focus=None):
         all_features = focus == "all features"
+        engine_specs = focus == "engine specs"
         facts = {
             "view": intent,
             "records_available": bool(records),
@@ -481,6 +482,10 @@ class OpenAIRuntime:
             "First introduce the side-by-side feature card in one short sentence. "
             "Leave the feature list and pricing to the card. "
             if all_features else
+            "First give one concise takeaway about the engine difference using the exact configurations. "
+            "Leave the model-by-model ratings and fuel requirements to the card. "
+            "Do not combine separately reported engine and motor output. "
+            if engine_specs else
             "First answer the requested comparison focus using published specifications if supplied. "
             "Preserve units and conditions such as fuel grade. For a general comparison, give "
             "one useful, factual difference between the exact configurations. "
