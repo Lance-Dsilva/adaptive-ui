@@ -495,7 +495,10 @@ export function CarComparison({ records = [], question = '' }) {
       </span>) : null;
     })]);
   }
-  const activeGroup = featureGroup || groups.find(group => /^key features$/i.test(group)) || 'overview';
+  const keyFeatures = groups.find(group => /^key features$/i.test(group));
+  const sharedKeyFeatures = allFeatures && keyFeatures &&
+    rowsForGroup(keyFeatures).some(([, values]) => values.every(Boolean));
+  const activeGroup = featureGroup || (sharedKeyFeatures ? keyFeatures : 'overview');
   return <section className="vehicle-comparison">
     <header className="comparison-result-heading">
       <h3>{allFeatures ? 'Feature comparison' : focus.length ? `${focus.join(' & ')} comparison` : 'Your comparison'}</h3>

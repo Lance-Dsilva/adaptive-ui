@@ -360,6 +360,9 @@ test('all features keeps the active trims and shows their feature categories bef
   assert.ok(firstView.includes('Feature category') && firstView.includes('Seat material'));
   assert.ok(firstView.includes('Leather') && firstView.includes('Leatherette'));
   assert.ok(!html.includes('Comparison pricing'));
+  const partial = renderToStaticMarkup(<components.CarComparison question="Compare all features"
+    records={[records[0], { ...records[1], specifications: [] }]} />);
+  assert.match(partial, /value="overview" selected="">Overview/);
 });
 
 test('specific comparison puts the requested metric above the vehicle cards', () => {
