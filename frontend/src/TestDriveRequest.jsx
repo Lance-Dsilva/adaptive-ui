@@ -77,12 +77,12 @@ export function TestDriveRequest({ records }) {
 
   if (accepted) return <section className="experience-card" role="status">
     <h3>Test-drive demo complete</h3>
-    <p>Your selections were cleared. To book a visit, contact the dealership.</p>
+    <p>Contact the dealership to book a visit.</p>
   </section>;
 
   return <section className="experience-card test-drive-card">
     <h3>Test drive</h3>
-    <p className="experience-note">Demo only. Your selections aren’t saved and no appointment is booked.</p>
+    <p className="experience-note">Demo only. To book a visit, contact the dealership.</p>
     <form className="request-fields" onSubmit={submit}>
       <label>Vehicle<select required value={model} onChange={event => setModel(event.target.value)}>
         <option value="">Choose a model</option>

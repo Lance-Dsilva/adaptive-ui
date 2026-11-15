@@ -521,7 +521,8 @@ class OpenAIRuntime:
             return await self._generate_sections(
                 message,
                 "Reply only with a brief invitation to choose a vehicle and preferred time below. "
-                "Describe choosing preferences only. Never imply an appointment was arranged.",
+                "Keep the reply focused on those selections. Leave submission details to the card. "
+                "Never imply an appointment was arranged.",
             )
         if re.search(
             r"\b(?:test[\s\-‑–]?drive|appointments?)\b"
