@@ -43,6 +43,11 @@ export function responseText(blocks) {
 }
 
 export function ResponseBlocks({ blocks, compare = false, onAction, disabled = false }) {
+  const catalogIndex = blocks.findIndex(block =>
+    block.type === 'ui' && block.component === 'CarList' && Array.isArray(block.props?.cars));
+  const catalogContext = blocks[catalogIndex - 1];
+  const integratedContext = catalogContext?.type === 'context' && Array.isArray(catalogContext.items)
+    ? catalogContext : null;
   const content = blocks.map((block, index) => {
     const key = block.id || index;
     if (block.type === 'text') {
@@ -50,13 +55,16 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
       return <ReplyText key={key} text={block.text} role={role} />;
     }
     if (block.type === 'context' && Array.isArray(block.items)) {
+      if (block === integratedContext) return null;
       return <ul key={key} className="response-context" aria-label="Response context">
         {block.items.map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}
       </ul>;
     }
     if (block.type === 'actions' && Array.isArray(block.actions)) {
+      const actions = integratedContext ? block.actions.filter(action => action.id !== 'clear-budget') : block.actions;
+      if (!actions.length) return null;
       return <div key={key} className="response-actions" role="group" aria-label={block.label || 'Suggested next steps'}>
-        {block.actions.slice(0, 2).map((action, actionIndex) => (
+        {actions.slice(0, 2).map((action, actionIndex) => (
           <button key={action.id || actionIndex} type="button"
             disabled={disabled || !onAction}
             onClick={disabled ? undefined : () => onAction?.(action)}>
@@ -74,7 +82,8 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
     if (block.type === 'ui' && block.component === 'CarList' && Array.isArray(block.props?.cars)) {
       return <BlockBoundary key={key} fallback={block.fallback_text}>
         <fieldset className="reply-controls" disabled={disabled}>
-          <CarList cars={block.props.cars} startComparison={compare || block.props.startComparison} />
+          <CarList cars={block.props.cars} startComparison={compare || block.props.startComparison}
+            contextItems={index === catalogIndex ? integratedContext?.items : undefined} />
         </fieldset>
       </BlockBoundary>;
     }

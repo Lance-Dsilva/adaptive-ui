@@ -185,8 +185,6 @@ svg { display: block; width: 24px; height: 24px; }
   text-underline-offset: 3px;
   font-size: 13px;
 }
-.price-filter { display: grid; gap: 5px; width: fit-content; margin-block: 4px; font-size: 13px; }
-.price-filter input { border: 1px solid #67728c; border-radius: 8px; padding: 8px; max-width: 165px; min-height: 44px; }
 .selection-note { font-size: 13px; color: var(--muted); }
 .comparison {
   width: 100%;
@@ -238,7 +236,7 @@ svg { display: block; width: 24px; height: 24px; }
   gap: 10px;
 }
 .comparison-selections small { display: block; color: var(--muted); margin-top: 3px; }
-.comparison-selections button, .active-filters button {
+.comparison-selections button {
   min-height: 44px;
   border: 0;
   background: transparent;
@@ -246,15 +244,6 @@ svg { display: block; width: 24px; height: 24px; }
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.active-filters {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
-  font-size: 13px;
-}
-.active-filters button { flex-shrink: 0; }
 .filter-explanation { font-size: 12px; line-height: 1.5; color: var(--muted); margin-block: 5px 10px; }
 .vehicle-title small { font-size: 11px; color: var(--muted); }
 
@@ -348,12 +337,34 @@ svg { display: block; width: 24px; height: 24px; }
 
 /* Quiet card surfaces preserve Aurora at the edges. */
 .shell { background: linear-gradient(135deg,#f5f0fa,#f5f7fb 55%,#eef5fc); }
-.discovery { display:grid; gap:14px; min-width:0; }
-.catalog-toolbar,.catalog-filters,.comparison-heading { display:flex; gap:10px; align-items:center; justify-content:space-between; }
-.catalog-toolbar,.selection-note { font-size:14px; line-height:20px; color:var(--muted); }
+.discovery { min-width:0; overflow:hidden; background:white; border:1px solid #e2e1ee; border-radius:21px; box-shadow:0 10px 28px #371b7410; }
+.comparison-heading { display:flex; gap:10px; align-items:center; justify-content:space-between; }
+.catalog-toolbar { display:grid; gap:10px; padding:14px 13px 12px; border-bottom:1px solid #e5e6ee; }
+.catalog-heading { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.catalog-heading h3 { font-size:22px; line-height:27px; letter-spacing:-.03em; font-weight:750; overflow-wrap:normal; }
+.catalog-heading > span { white-space:nowrap; color:var(--muted); font-size:13px; font-weight:600; }
 .discovery button { min-height:44px; border:1px solid #c5cada; border-radius:10px; background:white; color:var(--violet); padding:9px 12px; font-size:14px; }
-.catalog-filters { justify-content:flex-start; }
-.catalog-filters button[aria-pressed="true"] { background:#eeebfa; border-color:var(--violet); }
+.catalog-filters { display:grid; grid-template-columns: .85fr 1fr 1.1fr; gap:7px; }
+.catalog-filters button {
+  display:flex; align-items:center; justify-content:center; gap:5px; padding:0 5px;
+  border-color:#dad8e9; color:#35324c; background:#fbfbfe; font-size:13px; font-weight:650; white-space:nowrap;
+}
+.catalog-filters svg { width:15px; height:15px; flex:none; }
+.catalog-filters button[aria-pressed="true"], .catalog-filters button[aria-expanded="true"],
+.catalog-filters button[data-applied] { background:#f0eafd; border-color:#9a87e8; color:#3d279e; }
+.catalog-filters .catalog-compare:not([aria-pressed="true"]) { background:#4f3bc7; border-color:#4f3bc7; color:white; }
+.price-filter { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:8px; font-size:13px; }
+.price-filter label { display:grid; gap:4px; color:var(--muted); }
+.price-filter input { min-width:0; width:100%; border:1px solid #b9c0d0; border-radius:8px; padding:8px; min-height:44px; }
+.active-filters { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:2px 8px; font-size:12px; }
+.active-filters ul { display:flex; flex-wrap:wrap; list-style:none; padding:0; margin:0; gap:5px; }
+.active-filters li { padding:4px 8px; border-radius:7px; background:#f0eafd; color:#3d279e; }
+.active-filters button { border-color:transparent; padding:0 4px; font-size:12px; font-weight:650; }
+@media(max-width:350px) {
+  .catalog-heading h3 { font-size:19px; }
+  .catalog-filters button { gap:3px; font-size:12px; }
+  .catalog-filters svg { width:13px; height:13px; }
+}
 .selected-models { display:flex; flex-wrap:wrap; gap:8px; }
 .selected-models button { display:flex; gap:12px; align-items:center; background:#f0edf9; border-color:transparent; font-size:13px; }
 .vehicle-cards { list-style:none; padding:0; margin:0; display:grid; gap:16px; }
@@ -416,23 +427,20 @@ svg { display: block; width: 24px; height: 24px; }
 .comparison-models .comparison-year { margin-top:0; }
 
 /* Discovery follows the mockup: stacked compact rows in a bounded scroll list. */
-.catalog-scroll-hint { display:flex; justify-content:space-between; gap:12px; margin:0; color:var(--muted); font-size:12px; line-height:18px; }
-.catalog-scroll-region { min-width:0; max-height:min(54dvh,460px); overflow-y:auto; overflow-x:hidden; border:1px solid #e0e3ec; border-radius:16px; background:white; scrollbar-gutter:stable; scrollbar-width:thin; scrollbar-color:#a8a0cf #f5f3fa; touch-action:pan-y; -webkit-overflow-scrolling:touch; }
+.catalog-scroll-region { min-width:0; max-height:min(54dvh,460px); overflow-y:auto; overflow-x:hidden; background:white; scrollbar-width:thin; scrollbar-color:#a8a0cf #f5f3fa; touch-action:pan-y; -webkit-overflow-scrolling:touch; }
 .catalog-scroll-region:focus-visible { outline:2px solid var(--violet); outline-offset:3px; }
 .compact-model-list { gap:0; }
-.compact-model-list .vehicle-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:8px 12px; padding:14px 12px 0; border:0; border-bottom:1px solid #e5e6ee; border-radius:0; box-shadow:none; }
+.compact-model-list .vehicle-card { padding:13px 12px 2px; border:0; border-bottom:1px solid #e5e6ee; border-radius:0; box-shadow:none; }
 .compact-model-list .vehicle-card:last-child { border-bottom:0; }
-.compact-model-list .comparison-photo { background:transparent; align-self:center; }
-.compact-model-list .comparison-photo img { height:72px; }
-.compact-model-list .comparison-photo figcaption { background:transparent; padding:3px 0; font-size:9px; line-height:12px; }
+.compact-model-list .comparison-photo { overflow:hidden; border-radius:9px; background:#f3f4f7; align-self:center; }
+.compact-model-list .comparison-photo img { height:56px; }
 .compact-model-list .photo-unavailable { min-height:76px; font-size:11px; }
 .compact-model-list .photo-unavailable small { font-size:9px; }
-.compact-model-list .vehicle-card-content { position:relative; display:flex; flex-direction:column; justify-content:center; gap:6px; min-width:0; padding:0 40px 0 0; }
-.compact-model-list .vehicle-card-title h3 { font-size:16px; line-height:21px; margin-top:2px; }
-.compact-model-list .vehicle-card-title span { font-size:11px; }
-.compact-model-list .vehicle-starting-price { display:flex; flex-direction:column; gap:1px; }
-.compact-model-list .vehicle-starting-price strong { font-size:15px; line-height:20px; color:var(--muted); font-weight:500; }
-.compact-model-list .vehicle-starting-price span { font-size:10px; }
+.compact-model-list .vehicle-card-content { display:flex; flex-direction:column; justify-content:center; gap:2px; min-width:0; padding:0 21px 0 0; }
+.compact-model-list .vehicle-card-title h3 { font-size:14px; line-height:18px; margin:0; font-weight:750; }
+.compact-model-list .vehicle-starting-price { display:flex; flex-wrap:wrap; gap:4px; }
+.compact-model-list .vehicle-starting-price strong, .compact-model-list .vehicle-starting-price span { font-size:13px; line-height:17px; color:var(--muted); font-weight:500; }
+.catalog-photo-year { font-size:10px; line-height:13px; color:var(--muted); }
 .vehicle-row-action { position:absolute; right:-5px; top:50%; transform:translateY(-50%); }
 .discovery .vehicle-row-action button { width:44px; padding:0; border:0; background:transparent; color:var(--violet); font-size:27px; }
 .discovery .vehicle-row-action button[aria-pressed="true"] { background:#eeeafa; font-size:20px; }
@@ -444,19 +452,15 @@ svg { display: block; width: 24px; height: 24px; }
 .compact-model-list .vehicle-card-actions { margin-bottom:10px; }
 .compact-model-list .model-configurations .filter-actions { margin-bottom:12px; }
 @media(max-width:350px) {
- .compact-model-list .vehicle-card { grid-template-columns:78px minmax(0,1fr); column-gap:8px; padding-inline:10px; }
- .compact-model-list .vehicle-card-title h3 { font-size:14px; line-height:19px; }
- .compact-model-list .vehicle-starting-price strong { font-size:14px; }
+ .compact-model-list .vehicle-card { padding-inline:10px; }
 }
 /* A full-row native button covers only the preview, leaving disclosure controls separate. */
-.compact-model-list .vehicle-card { display:block; }
-.vehicle-row-main { display:grid; grid-template-columns:96px minmax(0,1fr); column-gap:12px; position:relative; }
+.vehicle-row-main { display:grid; grid-template-columns:88px minmax(0,1fr); column-gap:10px; position:relative; }
 .discovery .vehicle-row-trigger { position:absolute; inset:0; width:100%; border:0; border-radius:8px; background:transparent; text-align:right; padding:0 6px; font-size:27px; }
 .discovery .vehicle-row-trigger[aria-pressed="true"] { box-shadow:inset 0 0 0 2px #7163cf; }
 .discovery .vehicle-row-trigger:hover { background:#4335c708; }
-.compact-model-list .comparison-photo figcaption { overflow-wrap:normal; word-break:normal; hyphens:none; }
 .catalog-scroll-region { overscroll-behavior-y:auto; }
-@media(max-width:350px) { .vehicle-row-main { grid-template-columns:96px minmax(0,1fr); column-gap:8px; } }
+@media(max-width:350px) { .vehicle-row-main { grid-template-columns:74px minmax(0,1fr); column-gap:8px; } }
 
 .micro-reply { display: grid; gap: 8px; min-width: 0; }
 .micro-reply .response-answer { font-size: 17px; line-height: 24px; font-weight: 600; }
@@ -501,8 +505,7 @@ svg { display: block; width: 24px; height: 24px; }
   display: grid;
   gap: 10px;
   padding: 14px;
-  border: 1px solid #dee2eb;
-  border-radius: 16px;
+  border-bottom: 1px solid #e5e6ee;
   background: white;
 }
 .compare-picker > p { font-size: 13px; color: var(--muted); }

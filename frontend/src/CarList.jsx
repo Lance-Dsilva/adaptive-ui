@@ -7,6 +7,17 @@ const powertrains = { gasoline: 'Gasoline', mild_hybrid: 'Mild hybrid', plug_in_
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const price = value => Number.isFinite(value) ? usd.format(value) : 'Price unavailable';
 export const modelName = name => name.replace(/^Mazda\s+(?=Mazda)/i, '');
+const bodyLabels = new Map([['SUVs', 'SUVs'], ['Sedans', 'sedans'], ['Hatchbacks', 'hatchbacks']]);
+
+function ToolbarIcon({ name }) {
+  const paths = {
+    price: 'M3 4h7l6 6-6 6-7-7V4Zm4 3h.01',
+    hybrid: 'm10 2-6 8h5l-1 6 6-8H9l1-6Z',
+    compare: 'M3 4h12v10H3zM9 4v10',
+  };
+  return <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
+}
 
 export function seatingSummary(configs) {
   const seats = [...new Set(configs.flatMap(item => String(item.seating_capacity || '').split('|'))
@@ -22,32 +33,25 @@ function configurations(car) {
   }));
 }
 
-export function CarList({ cars, startComparison = false }) {
-  const scrollHintId = useId();
+export function CarList({ cars, startComparison = false, contextItems = [] }) {
+  const priceFormId = useId();
   const [showFilters, setShowFilters] = useState(false);
   const [limit, setLimit] = useState('');
   const [comparing, setComparing] = useState(startComparison);
   const [selected, setSelected] = useState([]);
   const [trimIds, setTrimIds] = useState({});
-  const scrollRegion = useRef(null);
   const compareButton = useRef(null);
-  const [listOverflows, setListOverflows] = useState(false);
-  const visible = cars;
+  const year = contextItems.find(item => /^20\d{2}$/.test(item)) || cars[0]?.year;
+  const body = contextItems.find(item => bodyLabels.has(item));
+  const filters = contextItems.filter(item => item !== String(year) && item !== body);
+  const hasPrice = filters.some(item => /^Up to \$/.test(item));
+  const hasHybrid = filters.some(item => /\bhybrids?\b/i.test(item));
+  const catalogName = [year, 'Mazda', bodyLabels.get(body) || 'models'].filter(Boolean).join(' ');
   const comparison = selected.map(id => cars.find(car => car.id === id)).filter(Boolean);
   const complete = comparing && comparison.length === 2;
   useEffect(() => {
     if (complete) compareButton.current?.focus();
   }, [complete]);
-  useEffect(() => {
-    const region = scrollRegion.current;
-    if (!region) return;
-    const measure = () => setListOverflows(region.scrollHeight > region.clientHeight + 1);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(region);
-    if (region.firstElementChild) observer.observe(region.firstElementChild);
-    return () => observer.disconnect();
-  }, [visible.length]);
 
   function toggleCar(id) {
     setSelected(current => current.includes(id)
@@ -62,12 +66,46 @@ export function CarList({ cars, startComparison = false }) {
     return { car, choices, trim: choices.find(item => item.trim_id === trimIds[car.id]) || lowest };
   });
 
-  return <div className="discovery">
+  return <section className="discovery" aria-label={catalogName}>
     <div className="catalog-toolbar">
-      <span>{comparing ? 'Choose cars to compare' : `${visible.length} matching models`}</span>
-      <button type="button" aria-pressed={comparing} onClick={() => {
-        setComparing(!comparing);
-      }}>{comparing ? 'Browse models' : 'Compare models'}</button>
+      <div className="catalog-heading">
+        <h3>{catalogName}</h3>
+        <span>{cars.length} {cars.length === 1 ? 'model' : 'models'}</span>
+      </div>
+      <div className="catalog-filters" role="group" aria-label="Filter and compare models">
+        <button type="button" aria-expanded={showFilters} aria-controls={showFilters ? priceFormId : undefined}
+          data-applied={hasPrice || undefined} onClick={() => setShowFilters(!showFilters)}>
+          <ToolbarIcon name="price" />Price
+        </button>
+        <button type="button" data-applied={hasHybrid || undefined}
+          onClick={() => askShoppingQuestion('Which of these are hybrids?')}>
+          <ToolbarIcon name="hybrid" />Hybrids
+        </button>
+        <button type="button" className="catalog-compare" aria-pressed={comparing}
+          onClick={() => setComparing(!comparing)}>
+          <ToolbarIcon name="compare" />{comparing ? 'Done' : 'Compare'}
+        </button>
+      </div>
+      {showFilters && <form id={priceFormId} className="price-filter" onSubmit={event => {
+        event.preventDefault();
+        if (limit !== '' && Number.isFinite(Number(limit)) && Number(limit) >= 0) {
+          askShoppingQuestion(`Show me the same vehicles under $${limit}.`);
+        }
+      }}>
+        <label>Maximum starting MSRP
+          <input type="number" min="0" step="0.01" inputMode="decimal" value={limit}
+            onChange={event => setLimit(event.target.value)} placeholder="Any price" required />
+        </label>
+        <button type="submit" disabled={limit === '' || !Number.isFinite(Number(limit)) || Number(limit) < 0}>
+          Apply
+        </button>
+      </form>}
+      {filters.length > 0 && <div className="active-filters" aria-label="Applied filters">
+        <ul>{filters.map((item, index) => <li key={index}>{item}</li>)}</ul>
+        <button type="button" onClick={() => askShoppingQuestion(`Show me ${catalogName}.`)}>
+          Clear filters
+        </button>
+      </div>}
     </div>
     {comparing && <section className="compare-picker" aria-label="Comparison selection">
       <p role="status">{comparison.length} of 2 selected</p>
@@ -101,32 +139,24 @@ export function CarList({ cars, startComparison = false }) {
             onClick={() => askToCompare(picks)}>Compare cars</button>
         : <p className="selection-note">{comparison.length ? 'Choose one more car.' : 'Choose two cars to compare.'}</p>}
     </section>}
-      <div className="catalog-filters">
-        <button type="button" aria-expanded={showFilters} onClick={() => setShowFilters(!showFilters)}>Price filter</button>
-        <button type="button" onClick={() => askShoppingQuestion('Which of these are hybrids?')}>Hybrids</button>
-      </div>
-      {showFilters && <label className="price-filter">Maximum starting MSRP
-        <input type="number" min="0" inputMode="numeric" value={limit}
-          onChange={event => setLimit(event.target.value)} placeholder="Any price" />
-        <button type="button" disabled={limit === '' || !Number.isFinite(Number(limit)) || Number(limit) < 0}
-          onClick={() => askShoppingQuestion(`Show me the same vehicles under $${limit}.`)}>Apply price filter</button>
-      </label>}
-      <div className="active-filters">
-        <button type="button" onClick={() => askShoppingQuestion('Show me all 2027 Mazda models and clear filters.')}>Clear filters</button>
-      </div>
-      <div ref={scrollRegion} className="catalog-scroll-region" role="region" aria-label="Scrollable Mazda model list" aria-describedby={scrollHintId} tabIndex="0">
+      <div className="catalog-scroll-region" role="region" aria-label="Scrollable Mazda model list" tabIndex="0">
       <ul className="vehicle-cards compact-model-list" aria-label="Matching Mazda models">
-        {visible.map(car => {
+        {cars.map(car => {
           const configs = configurations(car);
           const seats = seatingSummary(configs);
           const bodies = [...new Set(configs.map(item => item.body_style).filter(Boolean))];
           const drives = [...new Set(configs.map(item => item.drivetrain).filter(Boolean))];
+          const photoYear = car.image_is_reference && /^\d{4}/.exec(car.image_caption || '')?.[0];
           return <li key={car.id} className="vehicle-card">
             <div className="vehicle-row-main">
-            <ComparisonPhoto record={{ model: { name: modelName(car.name), model_year: car.year }, image_url: car.image_url, photos: car.photos, image_caption: car.image_caption, image_is_reference: car.image_is_reference }} />
+            <ComparisonPhoto hideCaption record={{ model: { name: modelName(car.name), model_year: car.year }, image_url: car.image_url, photos: car.photos, image_caption: car.image_caption, image_is_reference: car.image_is_reference }} />
             <div className="vehicle-card-content">
-              <div className="vehicle-card-title"><span>{car.year}</span><h3>{modelName(car.name)}</h3></div>
-              <p className="vehicle-starting-price"><strong>{price(car.msrp)}</strong><span>Starting MSRP</span></p>
+              <div className="vehicle-card-title"><h3>{modelName(car.name)}</h3></div>
+              <p className="vehicle-starting-price">
+                {Number.isFinite(car.msrp) && <span aria-label="Starting MSRP">From </span>}
+                <strong>{price(car.msrp)}</strong>
+              </p>
+              {photoYear && <small className="catalog-photo-year">{photoYear} photo</small>}
             </div>
             <button className="vehicle-row-trigger" type="button"
               aria-pressed={comparing ? selected.includes(car.id) : undefined}
@@ -160,6 +190,6 @@ export function CarList({ cars, startComparison = false }) {
         })}
       </ul>
       </div>
-      {visible.length === 0 && <p className="catalog-empty" role="status">No models match these filters. Clear filters to see the catalog.</p>}
-  </div>;
+      {cars.length === 0 && <p className="catalog-empty" role="status">No models match these filters.</p>}
+  </section>;
 }

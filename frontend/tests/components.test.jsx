@@ -182,6 +182,26 @@ test('photo uses the filtered caption for both visible text and alt without muta
 
 import { ResponseBlocks, previousTurnsFor, responseText } from '../src/ResponseBlocks.jsx';
 
+test('discovery merges year and body scope into the compact toolbar and shows reset only for applied filters', () => {
+  const cars = [{
+    id: 'cx5', name: 'Mazda CX-5', year: 2027, msrp: 29990, powertrain: 'gasoline', trims: [],
+  }];
+  const catalog = {type: 'ui', component: 'CarList', props: {cars}};
+  const context = {type: 'context', items: ['2027', 'SUVs']};
+  const initial = renderToStaticMarkup(<ResponseBlocks blocks={[context, catalog]} />);
+  assert.match(initial, /2027 Mazda SUVs<\/h3><span>1 model/);
+  assert.match(initial, /class="catalog-filters"/);
+  assert.doesNotMatch(initial, /Response context|Clear filters/);
+  const applied = renderToStaticMarkup(<ResponseBlocks blocks={[
+    {...context, items: [...context.items, 'Up to $35,000 MSRP', 'Hybrid']}, catalog,
+    {type: 'actions', actions: [{id: 'clear-budget', message: 'Remove budget', label: 'Clear budget'}]},
+  ]} />);
+  assert.match(applied, /aria-label="Applied filters"/);
+  assert.match(applied, /Up to \$35,000 MSRP/);
+  assert.match(applied, /Clear filters/);
+  assert.doesNotMatch(applied, /Clear budget|Response context/);
+});
+
 test('response roles determine typography independently of position and retain adjacent block order', () => {
   const blocks = [
     { type: 'text', id: 'body-first', role: 'body', text: 'Opening body' },

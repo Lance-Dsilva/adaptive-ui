@@ -337,7 +337,7 @@ export function comparisonCaption(record, asset) {
   return displayCaption(record.image_caption || asset?.caption);
 }
 
-export function ComparisonPhoto({ record, showCaption = false }) {
+export function ComparisonPhoto({ record, showCaption = false, hideCaption = false }) {
   const [failed, setFailed] = useState(false);
   const photos = record.photos || record.assets || [];
   const asset = photos.find(item => item.url === record.image_url) || photos.find(item => item.asset_kind === 'image' && https(item.url) && item.source_field !== 'swatchImageUrl');
@@ -347,7 +347,7 @@ export function ComparisonPhoto({ record, showCaption = false }) {
   return <figure className="comparison-photo">
     <img src={url} alt={caption || record.model?.name || record.name || 'Vehicle photo'} loading="lazy" referrerPolicy="no-referrer"
       onError={() => setFailed(true)} />
-    {caption && (showCaption || record.image_caption || asset?.applicability_label || asset?.applicability === 'model_reference') &&
+    {!hideCaption && caption && (showCaption || record.image_caption || asset?.applicability_label || asset?.applicability === 'model_reference') &&
       <figcaption>{caption}</figcaption>}
   </figure>;
 }
