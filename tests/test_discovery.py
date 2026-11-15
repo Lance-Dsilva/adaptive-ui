@@ -169,13 +169,14 @@ class DiscoveryTests(unittest.TestCase):
         sections = [
             "Here is what the catalog reports for the CX-90.",
             "1.9% APR for up to 36 months.",
-            "Eligibility depends on lender approval.",
-            "A separate lease is listed.",
+            "A loyalty incentive is listed.",
+            "A lease for a different model is listed.",
             "I couldn't verify an offer specific to your ZIP code.",
         ]
-        apr = {"offer_id": "apr", "apr_percent": "1.9"}
-        loyalty = {"offer_id": "loyalty", "cash_amount_usd": "1000"}
-        lease = {"offer_id": "lease", "term_months_max": "36"}
+        scope = {"model_id": "us-2027-cx90-mhev", "as_of": "2026-11-14"}
+        apr = {**scope, "offer_id": "apr", "apr_percent": "1.9"}
+        loyalty = {**scope, "offer_id": "loyalty", "cash_amount_usd": "1000"}
+        lease = {**scope, "model_id": "us-2027-cx5", "offer_id": "lease", "term_months_max": "36"}
 
         async def curate(message, call_tool):
             return sections
@@ -187,7 +188,7 @@ class DiscoveryTests(unittest.TestCase):
                     "props": {"records": offers}, "fallback_text": text[index],
                     "covers_section": index != 4,
                 }
-                for index, offers in enumerate(([apr, loyalty], [apr, loyalty], [loyalty, apr], [lease], [apr, loyalty]))
+                for index, offers in enumerate(([apr], [apr], [loyalty], [lease], [loyalty, apr]))
             }
 
         with TestClient(create_app(curate, select)) as client:

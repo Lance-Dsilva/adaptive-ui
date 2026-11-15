@@ -104,6 +104,11 @@ async def orchestrate(
             card_index = card_indices.setdefault(key, index)
             if card_index == index:
                 supplements[index] = {"type": "ui", **deepcopy(card)}
+            elif card["component"] == "FinancingOffers":
+                records = supplements[card_index]["props"].get("records", [])
+                for record in card["props"].get("records", []):
+                    if record not in records:
+                        records.append(deepcopy(record))
             if covered and index != 0:
                 covered_sections.add(index)
                 card_fallbacks.setdefault(card_index, []).append(index)
@@ -121,8 +126,15 @@ def _card_key(card: JSONObject) -> tuple[str, str]:
     component = card["component"]
     props = card["props"]
     if component == "FinancingOffers" and isinstance(props.get("records"), list):
-        # Offer rows can be selected in a different order for the same card.
-        props = {**props, "records": sorted(dumps(record, sort_keys=True, allow_nan=False) for record in props["records"])}
+        records = props["records"]
+        scope = {(record.get("model_id"), record.get("as_of")) for record in records if isinstance(record, dict)}
+        if records and len(scope) == 1 and all(isinstance(record, dict) for record in records):
+            model_id, as_of = next(iter(scope))
+            if model_id and as_of:
+                props = {**props, "records": {"model_id": model_id, "as_of": as_of}}
+                return component, dumps(props, sort_keys=True, allow_nan=False)
+        # Without a shared model and date, combine only identical offer sets.
+        props = {**props, "records": sorted(dumps(record, sort_keys=True, allow_nan=False) for record in records)}
     return component, dumps(props, sort_keys=True, allow_nan=False)
 
 
