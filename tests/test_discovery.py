@@ -74,14 +74,16 @@ class DiscoveryTests(unittest.TestCase):
         with TestClient(create_app(offline_catalog=True)) as client:
             response = client.post("/chat", json={"message": "Can you show me what cars are available for 2027?"})
             self.assertEqual(response.status_code, 200)
-            lead, effective, listing = response.json()["blocks"]
+            *answer, effective, listing = response.json()["blocks"]
             self.assertEqual(effective["type"], "context")
             self.assertEqual(effective["items"], ["2027"])
-            self.assertEqual([lead["type"], listing["type"]], ["text", "ui"])
+            self.assertTrue(all(block["type"] == "text" for block in answer))
+            self.assertEqual(listing["type"], "ui")
             self.assertEqual(listing["component"], "CarList")
             source = ROOT / "frontend" / "src" / "CarList.jsx"
             self.assertEqual(listing["code"], source.read_text(encoding="utf-8"))
             self.assertEqual(len(listing["fallback_text"].splitlines()), 4)
+            self.assertEqual(answer[1]["text"], listing["fallback_text"])
             self.assertIn("CX-5 — from $29,990.00", listing["fallback_text"])
 
             cars = {car["id"]: car for car in listing["props"]["cars"]}
@@ -137,9 +139,10 @@ class DiscoveryTests(unittest.TestCase):
 
         with TestClient(create_app(curate, select)) as client:
             blocks = client.post("/chat", json={"message": "fixture"}).json()["blocks"]
-        self.assertEqual(blocks[0], {"type": "text", "text": "  Intro\n"})
-        self.assertEqual(blocks[1]["props"]["cars"], expected["records"])
-        self.assertEqual(blocks[2], {"type": "text", "text": "\nFollow-up  "})
+        self.assertEqual(blocks[:3], [
+            {"type": "text", "text": text} for text in ("  Intro\n", "List fallback", "\nFollow-up  ")
+        ])
+        self.assertEqual(blocks[3]["props"]["cars"], expected["records"])
 
     def test_presentation_failure_keeps_original_text(self):
         raw = {"nested": [{"url": "https://example.invalid/a?b=1&b=2", "null": None, "empty": []}]}

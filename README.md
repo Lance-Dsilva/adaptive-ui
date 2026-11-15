@@ -13,7 +13,7 @@ The backend is a local FastAPI service that coordinates two agents. Domain funct
 | Tool Registry | Expose domain functions such as `search_cars` and `compare_cars` with their input and output contracts. |
 | CSV files | Supply the initial domain data, including image URLs where available. |
 | Agent 1 | Call domain tools and curate an answer grounded in their results. |
-| Agent 2 | Identify parts of that answer that can become UI, select a UI function, map the source data to its inputs, and attach the returned React code. |
+| Agent 2 | Identify parts of the answer that can be supplemented with UI, select a UI function, map the source data to its inputs, and attach the returned React code. |
 | UI function registry | Describe available UI functions, their input contracts, and the React code they return. |
 
 ## Data and tool definitions
@@ -30,8 +30,8 @@ The domain manifest enables only `search_cars`. The UI manifest enables only `re
 2. FastAPI passes the question and relevant conversation context to Agent 1. Agent 1 selects a Tool Registry function and supplies its arguments.
 3. The function reads the CSV data and returns raw structured results. FastAPI retains the complete result of every tool call.
 4. Agent 1 curates the response. FastAPI hands Agent 2 both the curated response and the complete original tool results, with references connecting the answer to its source records.
-5. Agent 2 identifies a section suitable for UI, maps its source records into the selected UI function's expected inputs, and calls that function to obtain React code. Text outside the selected section retains Agent 1's wording and order.
-6. FastAPI sends the assembled ordered blocks to the mobile frontend, which renders text, then the UI, then the remaining text. A response can contain multiple UI sections or only text.
+5. Agent 2 identifies sections that benefit from UI, maps source records into the corresponding UI functions, and calls them to obtain React code or presents available choices as buttons.
+6. FastAPI sends the full curated answer in order, followed by any matching UI. A response can contain multiple UI blocks or only text.
 
 ## Preserve tool data through the agent handoff
 
@@ -42,11 +42,11 @@ FastAPI retains the original structured tool results and attaches them to the ha
 - Preserve field names, values, nesting, list order, and the association between each record and its images. Keep null and empty values intact.
 - Carry image URLs verbatim, including query parameters. Associate each tool result with its tool name, call ID, and arguments so multiple results remain distinguishable.
 - Give Agent 2 access to every retained result. It can map the fields required by a UI function into props while the complete source result remains available in the handoff.
-- Preserve an appropriate text representation of any section replaced by UI so it can be shown if UI selection or rendering fails.
+- Retain the complete curated answer even if UI selection or rendering fails.
 
 ## Proposed message contract
 
-Use an ordered `blocks` array for the text/UI/text structure described above. Each UI block carries the React code returned by a UI function and the structured props that code consumes. The following shape is illustrative. The car and URL are placeholders.
+Use an ordered `blocks` array for the curated text and optional UI. Each UI block carries the React code returned by a UI function and the structured props that code consumes. The car and URL below are placeholders.
 
 ```json
 {
@@ -54,6 +54,10 @@ Use an ordered `blocks` array for the text/UI/text structure described above. Ea
     {
       "type": "text",
       "text": "Here is a car matching your request."
+    },
+    {
+      "type": "text",
+      "text": "Example Car — model year 2027."
     },
     {
       "type": "ui",
@@ -70,16 +74,12 @@ Use an ordered `blocks` array for the text/UI/text structure described above. Ea
         ]
       },
       "fallback_text": "Example Car — model year 2027."
-    },
-    {
-      "type": "text",
-      "text": "You can ask me to compare it with another car."
     }
   ]
 }
 ```
 
-In this example, Agent 2 replaces the middle section with UI. The first and last text blocks retain Agent 1's original text. The image URL in the props is copied exactly from the retained source record. Raw tool results remain available to Agent 2 even when a UI function uses only some fields.
+Agent 2 adds a card for the model named in the second paragraph. The image URL in the props is copied exactly from the retained source record. Raw tool results remain available to Agent 2 even when a UI function uses only some fields.
 
 The JSON envelope and field names above are a proposed contract. Streaming JSON lines can carry the same ordered blocks if streaming is chosen later.
 

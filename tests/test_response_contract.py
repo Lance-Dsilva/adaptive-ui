@@ -175,6 +175,53 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_current_apr_followup_checks_exact_offer_online_for_previous_model(self):
+        import json
+        import httpx
+        from test_openai_runtime import complete
+
+        requests = []
+        answer = "I couldn't verify a current 0% APR offer for 60 months on the 2027 CX-5."
+        web_reply = {"status": "completed", "output": [
+            {"type": "web_search_call", "status": "completed"},
+            {"type": "message", "content": [{
+                "type": "output_text", "text": answer, "annotations": [
+                    {"type": "url_citation", "url": "https://www.mazdausa.com/shopping-tools/special-offers",
+                     "end_index": len(answer)},
+                ],
+            }]},
+        ]}
+
+        async def generate(client, url, **kwargs):
+            payload = kwargs["json"]
+            requests.append(payload)
+            return httpx.Response(200, json=web_reply if payload.get("tools") else complete({
+                "sections": json.loads(payload["input"])["grounded_sections"],
+            }))
+
+        question = "Do they have 0% apr for 60months right now"
+        previous = "Show me the 2027 Mazda CX-5."
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "gpt-6-luna",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            web = client.post("/chat", json={
+                "message": question, "transcript": [{"role": "user", "content": previous}],
+            })
+            self.assertEqual(web.status_code, 200)
+            self.assertEqual([block["text"] for block in web.json()["blocks"]], [answer])
+            recorded = client.post("/chat", json={"message": "Show published financing offers for the 2027 CX-5."})
+            self.assertEqual(recorded.status_code, 200)
+            self.assertTrue(any(block.get("component") == "FinancingOffers" for block in recorded.json()["blocks"]))
+
+        lookup = requests[0]
+        self.assertEqual(lookup["tools"], [{"type": "web_search"}])
+        search_input = json.loads(lookup["input"])
+        self.assertEqual(search_input["question"], question)
+        self.assertEqual(search_input["mentioned_models"], ["cx5"])
+        self.assertEqual(search_input["previous_mazda_question"], previous)
+        self.assertIn("Verify the rate and term on the same offer", lookup["instructions"])
+        self.assertNotIn("tools", requests[1])
+
     def test_mazda_web_lookup_returns_provider_links_and_catalog_still_returns_cards(self):
         import json
         import httpx
@@ -262,7 +309,8 @@ class FreshChatTests(unittest.TestCase):
         card = next(block for block in blocks if block.get("component") == "CarList")
         self.assertEqual(len(card["props"]["cars"]), 3)
         self.assertFalse(any(block.get("choice") for block in blocks))
-        self.assertFalse(any("Which CX-90" in block.get("text", "") for block in blocks))
+        self.assertIn("Which CX-90", blocks[1]["text"])
+        self.assertGreater(blocks.index(card), max(index for index, block in enumerate(blocks) if block["type"] == "text"))
         self.assertEqual(len(requests), 1)
 
     def test_explicit_trim_choice_needs_one_model_call_and_keeps_both_trim_names(self):

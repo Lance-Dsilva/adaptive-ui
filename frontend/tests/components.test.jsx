@@ -301,6 +301,16 @@ test('transcript includes readable ordered content and omits suggested messages'
   ]), 'Answer\n2027 · SUV\nCar list\nCoverage information');
 });
 
+test('supplemental UI does not duplicate the curator’s answer in history or on fallback', () => {
+  const blocks = [
+    { type: 'text', text: 'The requested rate is unverified.' },
+    { type: 'ui', component: 'UnknownCard', fallback_text: 'The requested rate is unverified.' },
+  ];
+  assert.equal(responseText(blocks), 'The requested rate is unverified.');
+  const html = renderToStaticMarkup(<ResponseBlocks blocks={blocks} />);
+  assert.equal(html.match(/The requested rate is unverified\./g).length, 1);
+});
+
 test('comparison uses semantic headers and retains full specification values', () => {
   const record = {trim_id: 'one', name: 'Trim A', model: {name: 'Model A'}, msrp_usd: '32000',
     specifications: [{category: 'Performance',field: 'horsepower_87_aki',value: '280 hp',applicability: 'Regular fuel',source_url: 'https://example.com/spec.pdf'},

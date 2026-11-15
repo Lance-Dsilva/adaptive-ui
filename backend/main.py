@@ -294,7 +294,8 @@ def create_app(
             async with asyncio.timeout(110):
                 result = await orchestrate(message, first_stage, second_stage, invoke_tool)
                 if runtime is not None and runtime.web_blocks is not None:
-                    result = {"blocks": runtime.web_blocks}
+                    for block, web_block in zip(result["blocks"], runtime.web_blocks):
+                        block["citations"] = web_block["citations"]
                 if greeting is not None:
                     generated = decorate_response(result, message, user_history)
                     generated["blocks"].extend(

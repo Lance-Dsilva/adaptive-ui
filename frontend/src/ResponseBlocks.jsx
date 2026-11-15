@@ -22,7 +22,7 @@ class BlockBoundary extends Component {
 
   render() {
     return this.state.failed
-      ? <p className="response-body">{this.props.fallback}</p>
+      ? this.props.fallback && <p className="response-body">{this.props.fallback}</p>
       : this.props.children;
   }
 }
@@ -35,14 +35,16 @@ export function previousTurnsFor(turns, currentId, contextTurnId = null) {
 }
 
 export function responseText(blocks) {
+  const shownText = new Set(blocks.filter(block => block.type === 'text').map(block => block.text));
   return blocks.map(block => {
     if (block.type === 'text' || block.type === 'disclosure') return block.text || '';
     if (block.type === 'context') return (block.items || []).join(' · ');
-    return block.fallback_text || '';
+    return shownText.has(block.fallback_text) ? '' : block.fallback_text || '';
   }).filter(Boolean).join('\n');
 }
 
 export function ResponseBlocks({ blocks, compare = false, onAction, disabled = false }) {
+  const shownText = new Set(blocks.filter(block => block.type === 'text').map(block => block.text));
   const catalogIndex = blocks.findIndex(block =>
     block.type === 'ui' && block.component === 'CarList' && Array.isArray(block.props?.cars));
   const catalogContext = blocks[catalogIndex - 1];
@@ -50,6 +52,7 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
     ? catalogContext : null;
   const content = blocks.map((block, index) => {
     const key = block.id || index;
+    const fallback = shownText.has(block.fallback_text) ? null : block.fallback_text;
     if (block.type === 'text') {
       const role = textRoles.has(block.role) ? block.role : 'body';
       if (Array.isArray(block.citations)) {
@@ -87,7 +90,7 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
       </details>;
     }
     if (block.type === 'ui' && block.component === 'CarList' && Array.isArray(block.props?.cars)) {
-      return <BlockBoundary key={key} fallback={block.fallback_text}>
+      return <BlockBoundary key={key} fallback={fallback}>
         <fieldset className="reply-controls" disabled={disabled}>
           <CarList cars={block.props.cars} startComparison={compare || block.props.startComparison}
             contextItems={index === catalogIndex ? integratedContext?.items : undefined} />
@@ -97,13 +100,13 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
     const VehicleComponent = Object.hasOwn(vehicleComponents, block.component)
       ? vehicleComponents[block.component] : null;
     if (block.type === 'ui' && VehicleComponent && Array.isArray(block.props?.records)) {
-      return <BlockBoundary key={key} fallback={block.fallback_text}>
+      return <BlockBoundary key={key} fallback={fallback}>
         <fieldset className="reply-controls" disabled={disabled}>
           <VehicleComponent records={block.props.records} />
         </fieldset>
       </BlockBoundary>;
     }
-    return block.fallback_text ? <p className="response-body" key={key}>{block.fallback_text}</p> : null;
+    return fallback ? <p className="response-body" key={key}>{fallback}</p> : null;
   });
   return <ReplyControlsDisabled value={disabled}>{content}</ReplyControlsDisabled>;
 }

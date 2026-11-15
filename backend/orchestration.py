@@ -38,15 +38,15 @@ async def orchestrate(
     *,
     validate_ui: ValidateUI | None = None,
 ) -> JSONObject:
-    """Run curation and optionally replace individual sections with UI.
+    """Run curation and attach any validated matching UI after the answer.
 
     Agent one awaits its tool calls, provides a unique call ID per call, and
     returns ordered, renderable text sections. Tool errors propagate to that
     agent so its adapter can choose an appropriate conversational response.
     Agent two receives those sections and an independent snapshot of each
-    successful call, in invocation order. It returns replacements keyed by
-    zero-based section index. Each replacement must carry the original section
-    as fallback_text. An optional validator raises to reject a replacement.
+    successful call, in invocation order. It proposes UI by zero-based section
+    index. Each proposal must carry the original section as fallback_text for
+    validation. The full curated answer is retained in its original order.
     """
     calls: dict[str, ToolResult | None] = {}
 
@@ -75,14 +75,13 @@ async def orchestrate(
         logger.warning("Presentation stage failed", exc_info=True)
         proposed = {}
 
-    replacements: dict[int, JSONObject] = {}
-    choices: dict[int, JSONObject] = {}
+    supplements: dict[int, JSONObject] = {}
     if isinstance(proposed, Mapping):
         for index, result in proposed.items():
             if type(index) is not int or not 0 <= index < len(sections):
                 continue
             if _is_choice_result(result, sections[index]):
-                choices[index] = {key: deepcopy(result[key]) for key in ("type", "choice", "label", "actions")}
+                supplements[index] = {key: deepcopy(result[key]) for key in ("type", "choice", "label", "actions")}
                 continue
             if not _is_ui_result(result, sections[index]):
                 continue
@@ -92,13 +91,10 @@ async def orchestrate(
             except Exception:
                 logger.warning("UI result validation failed for section %d", index)
                 continue
-            replacements[index] = {"type": "ui", **deepcopy(result)}
+            supplements[index] = {"type": "ui", **deepcopy(result)}
 
-    blocks = []
-    for index, section in enumerate(sections):
-        blocks.append(replacements.get(index, {"type": "text", "text": section}))
-        if index in choices:
-            blocks.append(choices[index])
+    blocks = [{"type": "text", "text": section} for section in sections]
+    blocks.extend(supplements[index] for index in sorted(supplements))
     return {"blocks": blocks}
 
 
