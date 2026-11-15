@@ -87,6 +87,7 @@ def create_app(
     run_agent_two: RunAgentTwo | None = None,
     *,
     offline_catalog: bool = False,
+    test_drive_enabled: bool = True,
 ) -> FastAPI:
     registry = ToolRegistry(project_root)
     presentation = run_agent_two
@@ -139,6 +140,8 @@ def create_app(
 
     @service.post("/test-drive-requests")
     def test_drive(body: TestDriveRequest) -> dict:
+        if not test_drive_enabled:
+            raise HTTPException(status_code=503, detail="Contact the dealership to request a test drive.")
         from .appointments import create_request
         try:
             return create_request(project_root, body.model_dump(mode="json"))
@@ -148,7 +151,11 @@ def create_app(
     @service.get("/capabilities")
     def capabilities() -> dict:
         settings = load_settings(project_root)
-        return {"ai_configured": bool(settings.get("OPENAI_API_KEY")), "catalog_year": 2027}
+        return {
+            "ai_configured": bool(settings.get("OPENAI_API_KEY")),
+            "catalog_year": 2027,
+            "test_drive_enabled": test_drive_enabled,
+        }
 
     @service.get("/", include_in_schema=False)
     def frontend() -> FileResponse:
@@ -218,6 +225,7 @@ def create_app(
             runtime = OpenAIRuntime(
                 project_root, api_key=settings["OPENAI_API_KEY"],
                 model=settings["OPENAI_MODEL"], render_ui=UIRegistry(project_root).render,
+                test_drive_enabled=test_drive_enabled,
             )
 
             async def ai_curate(message, call_tool):

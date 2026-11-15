@@ -85,9 +85,24 @@ class HTTPFlowTests(unittest.TestCase):
             ):
                 response = self.client.get("/capabilities")
                 self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.json(), {"ai_configured": configured, "catalog_year": 2027})
+                self.assertEqual(response.json(), {
+                    "ai_configured": configured, "catalog_year": 2027, "test_drive_enabled": True,
+                })
                 self.assertNotIn("OPENAI", response.text)
                 self.assertNotIn("test-secret", response.text)
+
+    def test_hosted_app_disables_local_test_drive_storage(self):
+        from app import app
+
+        with TestClient(app) as client, patch("backend.appointments.create_request") as save:
+            self.assertFalse(client.get("/capabilities").json()["test_drive_enabled"])
+            response = client.post("/test-drive-requests", json={
+                "model_id": "us-2027-cx5", "requested_date": "2027-01-15",
+                "requested_time": "15:00", "name": "Test Customer",
+                "email": "test@example.invalid", "idempotency_key": "0c8a648c-81a1-4295-8c38-1f087408428d",
+            })
+            self.assertEqual(response.status_code, 503)
+            save.assert_not_called()
 
     def test_chat_rejects_invalid_messages_before_processing(self):
         with patch("backend.main.load_settings", side_effect=AssertionError("Invalid chat reached processing")):

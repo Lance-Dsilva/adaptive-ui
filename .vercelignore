@@ -1,0 +1,11 @@
+.env
+.env.*
+.venv/
+.vercel/
+data/local/
+docs/
+img/
+frontend/dist/
+frontend/node_modules/
+frontend/tests/
+tests/

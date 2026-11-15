@@ -19,6 +19,7 @@ function Icon({ name, ...props }) {
 
 function App() {
   const [aiConfigured, setAiConfigured] = useState(false);
+  const [testDriveEnabled, setTestDriveEnabled] = useState(false);
   const [showTestDrive, setShowTestDrive] = useState(false);
   const [requestPending, setRequestPending] = useState(false);
   const [draft, setDraft] = useState('');
@@ -40,7 +41,10 @@ function App() {
   useEffect(() => {
     const controller = new AbortController();
     fetch('/capabilities', { signal: controller.signal }).then(response => response.json())
-      .then(data => setAiConfigured(data.ai_configured === true)).catch(() => {});
+      .then(data => {
+        setAiConfigured(data.ai_configured === true);
+        setTestDriveEnabled(data.test_drive_enabled === true);
+      }).catch(() => {});
     return () => controller.abort();
   }, []);
 
@@ -121,9 +125,9 @@ function App() {
               setMenu(false);
               input.current?.focus();
             }}>New chat</button>
-            <button type="button" disabled={pending || requestPending} onClick={() => {
+            {testDriveEnabled && <button type="button" disabled={pending || requestPending} onClick={() => {
               setShowTestDrive(true); setMenu(false);
-            }}>Request test drive</button>
+            }}>Request test drive</button>}
           </div>}
         </div>
       </header>
