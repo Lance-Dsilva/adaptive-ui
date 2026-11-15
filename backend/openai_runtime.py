@@ -661,6 +661,8 @@ class OpenAIRuntime:
             "mean unknown, never zero or no surcharge. Plug-in hybrids can operate using their "
             "gasoline engine without being plugged in; do not claim plugging in is required to drive. "
             "Use exact sourced operating specifications and distinguish charging from operation. "
+            "Compare measurements under the same published conditions when possible. Label differences "
+            "in fuel grade and distinguish engine output from a hybrid's combined system output. "
             "The researched catalog covers only U.S. 2027 Mazda3, CX-5, and CX-90 families. "
             "Never claim coverage of all U.S. Mazda models, complete specifications, complete media, or current lease terms. "
             "This application has no live dealership inventory connection and cannot retrieve "

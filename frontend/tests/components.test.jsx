@@ -349,7 +349,9 @@ test('specific comparison puts the requested metric above the vehicle cards', ()
     { trim_id: 'second', name: 'Preferred', model: { name: 'CX-90 PHEV', powertrain: 'plug_in_hybrid' },
       msrp_usd: '50695', specifications: [{ category: 'Performance', field: 'horsepower_91_aki', value: '323' }] },
   ];
-  const html = renderToStaticMarkup(<components.CarComparison records={records} question="Compare horsepower" />);
+  const html = renderToStaticMarkup(<ResponseBlocks blocks={[{
+    type: 'ui', component: 'CarComparison', props: { records, question: 'Compare horsepower' },
+  }]} />);
   const featured = html.slice(0, html.indexOf('class="comparison-models"'));
   assert.ok(featured.includes('Horsepower comparison') && featured.includes('187 hp') && featured.includes('323 hp'));
   assert.ok(featured.includes('91 AKI') && featured.includes('Combined system output'));

@@ -103,7 +103,7 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
     if (block.type === 'ui' && VehicleComponent && Array.isArray(block.props?.records)) {
       return <BlockBoundary key={key} fallback={fallback}>
         <fieldset className="reply-controls" disabled={disabled}>
-          <VehicleComponent records={block.props.records} />
+          <VehicleComponent records={block.props.records} question={block.props.question} />
         </fieldset>
       </BlockBoundary>;
     }
