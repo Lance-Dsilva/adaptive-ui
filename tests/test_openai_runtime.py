@@ -237,6 +237,8 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, ["Verified Preferred details"])
         self.assertEqual([name for name, _ in invoked], ["search_cars", "get_car_details"])
         self.assertIn("cannot be accepted", requests[2]["input"][-1]["content"])
+        self.assertEqual(len({request["instructions"] for request in requests}), 1)
+        self.assertNotIn("Unverified Preferred details", json.dumps(requests[2]["input"]))
         constrained = next(tool for tool in requests[2]["tools"] if tool["name"] == "get_car_details")
         self.assertEqual(constrained["parameters"]["properties"]["trim_id"]["enum"], [trim_id])
 

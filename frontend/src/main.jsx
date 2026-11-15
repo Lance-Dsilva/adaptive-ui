@@ -6,6 +6,13 @@ import './styles.css';
 
 const DISCOVER = 'Show me Mazda SUVs.';
 const COMPARE = 'Can you show me what cars are available for 2027?';
+const CHAT_ERRORS = {
+  timeout: 'The assistant took too long to respond. Try again.',
+  busy: 'The assistant is busy. Try again in a moment.',
+  selection: 'That request couldn’t be accepted. Try asking again in the chat box.',
+  connection: 'Couldn’t reach the assistant. Check your connection and try again.',
+  service: 'The assistant couldn’t complete this request. Try again.',
+};
 
 function Icon({ name, ...props }) {
   return (
@@ -85,6 +92,7 @@ function App() {
     }
     setPending(true);
     setShowTestDrive(false);
+    let receivedResponse = false;
     try {
       const response = await fetch('/chat', {
         method: 'POST',
@@ -93,12 +101,18 @@ function App() {
         body: JSON.stringify({ message: text, history, transcript, vehicle_action: action }),
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error('Chat request failed');
+      receivedResponse = true;
+      if (!response.ok) {
+        const error = { 408: 'timeout', 504: 'timeout', 429: 'busy', 422: 'selection' }[response.status];
+        update({ error: error ?? 'service' });
+        return;
+      }
       const { blocks } = await response.json();
       if (!Array.isArray(blocks) || blocks.length === 0) throw new Error('Missing chat blocks');
       update({ blocks });
     } catch (error) {
-      update({ error: error.name === 'AbortError' ? 'timeout' : 'request' });
+      if (error.name === 'AbortError') update({ error: 'timeout' });
+      else update({ error: receivedResponse ? 'service' : 'connection' });
     } finally {
       clearTimeout(timeout);
       activeRequest.current = null;
@@ -160,9 +174,7 @@ function App() {
                 disabled={index !== turns.length - 1 || pending || requestPending}
                 onAction={action => send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id)} /> : turn.error ? (
                 <div className="chat-error">
-                  <p>{turn.error === 'timeout'
-                    ? 'This request is taking longer than expected. Try again.'
-                    : 'We couldn’t finish this request. Check your connection and try again.'}</p>
+                  <p>{CHAT_ERRORS[turn.error]}</p>
                   <button type="button" disabled={index !== turns.length - 1 || pending || requestPending}
                     onClick={() => send(turn.message, turn.compare, turn.id, turn.action, turn.contextTurnId ?? null)}>Try again</button>
                 </div>

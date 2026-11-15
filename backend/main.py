@@ -14,6 +14,7 @@ from datetime import date, time, datetime
 from zoneinfo import ZoneInfo
 
 from .conversation import curate, selection_for, filter_records
+from .openai_runtime import OpenAIRuntimeError
 from starlette.concurrency import run_in_threadpool
 
 from .orchestration import CallTool, RunAgentOne, RunAgentTwo, orchestrate
@@ -310,8 +311,16 @@ def create_app(
                 return response_body
         except HTTPException:
             raise
-        except Exception:
-            logger.error("Chat processing failed")
+        except OpenAIRuntimeError as error:
+            logger.warning("Chat model failure (%s): %s", error.status_code, error)
+            raise HTTPException(status_code=error.status_code, detail=str(error),
+                                headers={"Cache-Control": "no-store"}) from None
+        except TimeoutError:
+            logger.warning("Chat request exceeded the server deadline")
+            raise HTTPException(status_code=504, detail="The assistant request timed out.",
+                                headers={"Cache-Control": "no-store"}) from None
+        except Exception as error:
+            logger.error("Chat processing failed (%s)", type(error).__name__)
             raise HTTPException(status_code=503, detail="The assistant is temporarily unavailable. Please retry.",
                                 headers={"Cache-Control": "no-store"}) from None
 

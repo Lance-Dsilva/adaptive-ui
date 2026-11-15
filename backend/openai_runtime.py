@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import re
 from time import monotonic
@@ -23,6 +24,9 @@ from jsonschema.exceptions import ValidationError
 from .orchestration import CallTool, ToolResult
 from .conversation import selection_for, filter_records, curate as curate_catalog
 from .ui_registry import _BINDINGS
+
+logger = logging.getLogger(__name__)
+TOOL_LOOP_TIMEOUT = 40
 
 API_URL = "https://api.openai.com/v1/responses"
 _SHOPPING_PROMPTS = {
@@ -114,6 +118,10 @@ def _choice_question(sections):
 
 class OpenAIRuntimeError(RuntimeError):
     """A safe failure message suitable for application handling."""
+
+    def __init__(self, message: str, *, status_code: int = 503):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def _json(value: Any) -> str:
@@ -223,6 +231,7 @@ class OpenAIRuntime:
         )
         self._catalog_context = ContextVar("catalog_context", default=False)
         self._deadline = ContextVar("model_deadline", default=None)
+        self._request_reference = ContextVar("request_reference", default=None)
         self._render_ui = render_ui
         # Curation and selection run in the same request task. ContextVar keeps concurrent
         # requests isolated if a runtime instance is reused by a caller.
@@ -258,7 +267,7 @@ class OpenAIRuntime:
             async with asyncio.timeout(remaining):
                 return await self._request_unbounded(payload)
         except TimeoutError:
-            raise OpenAIRuntimeError("The assistant request timed out. Please try a shorter question or a specific model.") from None
+            raise OpenAIRuntimeError("The assistant request timed out.", status_code=504) from None
 
     async def _request_unbounded(self, payload: dict) -> dict:
         if not self._api_key:
@@ -271,10 +280,11 @@ class OpenAIRuntime:
             "reasoning": {"effort": "low"},
             **payload,
         }
-        # Older models use implicit prefix matching. Start the app's instructions
-        # with a unique request reference to avoid a reusable prompt prefix.
+        # Each shopper turn has a distinct prefix. Tool continuations keep its
+        # instructions stable so the provider can replay encrypted reasoning.
+        reference = self._request_reference.get() or uuid4().hex
         body["instructions"] = (
-            f"Request reference (do not echo): {uuid4().hex}\n"
+            f"Request reference (do not echo): {reference}\n"
             + body.get("instructions", "")
             + "\nIn customer-facing prose, omit citations, attribution, research check dates, and reference links. "
               "Keep factual qualifications, including model years and offer expiration dates. "
@@ -292,15 +302,16 @@ class OpenAIRuntime:
             if response.status_code in (401, 403):
                 raise OpenAIRuntimeError("The assistant API credentials could not be accepted.")
             if response.status_code == 429:
-                raise OpenAIRuntimeError("The assistant service is at its request limit. Please try again later.")
+                raise OpenAIRuntimeError("The assistant service is at its request limit.", status_code=429)
             if response.is_error:
+                logger.warning("OpenAI rejected the request with HTTP %s", response.status_code)
                 raise OpenAIRuntimeError("The assistant service could not complete this request.")
             result = response.json()
             if not isinstance(result, dict) or not isinstance(result.get("output"), list):
                 raise ValueError("Invalid response envelope")
             return result
         except httpx.TimeoutException:
-            raise OpenAIRuntimeError("The assistant request timed out. Please try again.") from None
+            raise OpenAIRuntimeError("The assistant request timed out.", status_code=504) from None
         except (httpx.HTTPError, ValueError, TypeError):
             raise OpenAIRuntimeError("The assistant service returned an unreadable response.") from None
 
@@ -358,6 +369,7 @@ class OpenAIRuntime:
         self._presentation_context.set(None)
         self._catalog_context.set(False)
         self._trim_choice_context.set(None)
+        self._request_reference.set(uuid4().hex)
         self._deadline.set(monotonic() + 20)
         if re.search(
             r"\b(?:test[\s\-‑–]?drive|appointments?)\b"
@@ -546,8 +558,9 @@ class OpenAIRuntime:
         detail_succeeded = False
         search_has_matches = False
         search_was_called = False
+        self._deadline.set(monotonic() + TOOL_LOOP_TIMEOUT)
         try:
-            async with asyncio.timeout(20):
+            async with asyncio.timeout(TOOL_LOOP_TIMEOUT):
                 for _ in range(self._max_rounds):
                     response = await self._request({
                         "instructions": instructions,
@@ -569,7 +582,6 @@ class OpenAIRuntime:
                             not search_was_called or bool(comparison_model_ids)
                         )
                         if needs_comparison:
-                            inputs.extend(deepcopy(output))
                             inputs.append({
                                 "role": "developer",
                                 "content": (
@@ -587,7 +599,6 @@ class OpenAIRuntime:
                             })
                             continue
                         if needs_details:
-                            inputs.extend(deepcopy(output))
                             inputs.append({
                                 "role": "developer",
                                 "content": (
@@ -688,7 +699,7 @@ class OpenAIRuntime:
                             "output": _json(result),
                         })
         except TimeoutError:
-            raise OpenAIRuntimeError("The assistant request timed out. Please try again.") from None
+            raise OpenAIRuntimeError("The assistant request timed out.", status_code=504) from None
         raise OpenAIRuntimeError("This request exceeded the assistant tool-round limit.")
 
     async def select(self, sections: tuple[str, ...], calls: tuple[ToolResult, ...]) -> dict:

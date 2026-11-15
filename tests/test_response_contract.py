@@ -175,6 +175,25 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_chat_distinguishes_upstream_timeout_rate_limit_and_rejection(self):
+        import httpx
+
+        outcomes = iter((None, 429, 400))
+
+        async def generate(client, url, **kwargs):
+            status = next(outcomes)
+            if status is None:
+                raise httpx.ReadTimeout("fixture")
+            return httpx.Response(status)
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "fixture-model",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            for expected in (504, 429, 503):
+                response = client.post("/chat", json={"message": "Show me Mazda SUVs."})
+                self.assertEqual(response.status_code, expected)
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+
     def test_suv_results_keep_the_list_when_generated_copy_asks_for_a_powertrain(self):
         import json
         import httpx
