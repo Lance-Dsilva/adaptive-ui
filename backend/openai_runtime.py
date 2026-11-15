@@ -227,6 +227,7 @@ class OpenAIRuntime:
         # Curation and selection run in the same request task. ContextVar keeps concurrent
         # requests isolated if a runtime instance is reused by a caller.
         self._presentation_context = ContextVar("presentation_context", default=None)
+        self._trim_choice_context = ContextVar("trim_choice_context", default=None)
         if max_rounds < 1 or max_tool_calls < 1:
             raise ValueError("Agent limits must be positive.")
         self._max_rounds = max_rounds
@@ -356,6 +357,7 @@ class OpenAIRuntime:
         """Run domain calls locally and return ordered prose grounded in their results."""
         self._presentation_context.set(None)
         self._catalog_context.set(False)
+        self._trim_choice_context.set(None)
         self._deadline.set(monotonic() + 20)
         if re.search(
             r"\b(?:test[\s\-‑–]?drive|appointments?)\b"
@@ -389,6 +391,34 @@ class OpenAIRuntime:
         user_history = [item["content"] for item in inputs if item["role"] == "user"]
         intent = selection_for(message, user_history)
         self._presentation_context.set((intent, message))
+        if len(intent.models) == 1 and re.search(
+            r"\b(?:choose|pick|select) between\b|\bwhich (?:one|trim)\b", message, re.I
+        ) and intent.mode != "comparison":
+            result = await call_tool("search_cars", {"model_year": intent.year}, "trim-choices")
+            records = filter_records(result["records"], intent)
+            if len(records) == 1:
+                record = records[0]
+                trims_by_name = {}
+                for trim in record["trims"]:
+                    trims_by_name.setdefault(trim["name"].casefold(), []).append(trim)
+                names = sorted(trims_by_name, key=len, reverse=True)
+                pattern = r"(?<!\w)(?:" + "|".join(map(re.escape, names)) + r")(?!\w)"
+                matches = list(dict.fromkeys(re.findall(pattern, message.casefold()))) if names else []
+                if 2 <= len(matches) <= 8 and all(len(trims_by_name[name]) == 1 for name in matches):
+                    trims = [trims_by_name[name][0] for name in matches]
+                    view = {"gallery": "photos", "visualization": "a 360° view"}.get(
+                        intent.mode, intent.mode if intent.mode != "discovery" else "details"
+                    )
+                    self._trim_choice_context.set([
+                        {"label": trim["name"], "trim_id": trim["trim_id"],
+                         "message": f"Show me {view} for the {intent.year} {record['name']} {trim['name']}."}
+                        for trim in trims
+                    ])
+                    return await self._generate_sections(
+                        _json({"question": message, "model": record["name"], "trims": [trim["name"] for trim in trims]}),
+                        "Ask the shopper which trim they want. Return one short question in one "
+                        "section. The UI displays the choices. Do not list or recommend trims.",
+                    )
         if self._fast_catalog and _catalog_request(message, intent, user_history):
             self._catalog_context.set(True)
             draft = await curate_catalog(message, call_tool, user_history)
@@ -669,6 +699,13 @@ class OpenAIRuntime:
         if len(source_calls) != len(calls):
             raise OpenAIRuntimeError("The presentation sources contain duplicate call IDs.")
         context = self._presentation_context.get()
+        trim_choices = self._trim_choice_context.get()
+        if trim_choices and sections:
+            replacements = {}
+            eligible = {call.call_id: range(len(call.result.get("records", []))) for call in calls}
+            self._add_choices(replacements, [{"section_index": 0, "options": trim_choices}],
+                              sections, calls, eligible, context)
+            return replacements
         if not has_choice and context and context[0].body_style == "suv" and _shopping_prompt(context[1]):
             return {}
         if self._catalog_context.get() and not has_choice:

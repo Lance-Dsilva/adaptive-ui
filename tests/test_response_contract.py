@@ -175,6 +175,29 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_explicit_trim_choice_needs_one_model_call_and_keeps_both_trim_names(self):
+        import json
+        import httpx
+        from test_openai_runtime import complete
+
+        requests = []
+
+        async def generate(client, url, **kwargs):
+            requests.append(json.loads(kwargs["json"]["input"]))
+            return httpx.Response(200, json=complete({"sections": ["Which CX-5 trim would you like?"]}))
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "fixture-model",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            response = client.post("/chat", json={
+                "message": "Ask me to choose between the 2027 Mazda CX-5 2.5 S and 2.5 S Select before showing details."
+            })
+        self.assertEqual(response.status_code, 200)
+        choice = next(block for block in response.json()["blocks"] if block.get("choice"))
+        self.assertEqual([action["label"] for action in choice["actions"]], ["2.5 S", "2.5 S Select"])
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(requests[0]["trims"], ["2.5 S", "2.5 S Select"])
+
     def test_presenter_turns_cx5_trim_clarification_into_exact_vehicle_actions(self):
         import httpx
         from test_openai_runtime import complete, tool_response
