@@ -35,10 +35,46 @@ function App() {
   const [menu, setMenu] = useState(false);
   const nextId = useRef(0);
   const activeRequest = useRef(null);
+  const shell = useRef(null);
   const log = useRef(null);
   const latest = useRef(null);
   const input = useRef(null);
   const welcome = turns.length === 0;
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const frame = shell.current;
+    if (!viewport || !frame) return;
+
+    let updateFrame = 0;
+    function syncViewport() {
+      // Leave the layout available for native panning while pinch-zoomed.
+      if (viewport.scale !== 1 || viewport.height <= 0) {
+        frame.style.removeProperty('--visible-height');
+        frame.style.removeProperty('--visible-top');
+        return;
+      }
+      frame.style.setProperty('--visible-height', `${viewport.height}px`);
+      frame.style.setProperty('--visible-top', `${Math.max(0, viewport.offsetTop)}px`);
+    }
+    function scheduleSync() {
+      cancelAnimationFrame(updateFrame);
+      updateFrame = requestAnimationFrame(syncViewport);
+    }
+
+    syncViewport();
+    viewport.addEventListener('resize', scheduleSync);
+    viewport.addEventListener('scroll', scheduleSync);
+    window.addEventListener('resize', scheduleSync);
+    window.addEventListener('pageshow', scheduleSync);
+    return () => {
+      cancelAnimationFrame(updateFrame);
+      viewport.removeEventListener('resize', scheduleSync);
+      viewport.removeEventListener('scroll', scheduleSync);
+      window.removeEventListener('resize', scheduleSync);
+      window.removeEventListener('pageshow', scheduleSync);
+    };
+  }, []);
 
   useEffect(() => {
     if (!latest.current || !log.current) return;
@@ -121,7 +157,7 @@ function App() {
   }
 
   return (
-    <div className="shell">
+    <div className="shell" ref={shell}>
       <header className="header">
         <img src="/assets/mazda-mark.webp" className="brand-mark" alt="" />
         <div className="brand">

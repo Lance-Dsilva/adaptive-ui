@@ -10,6 +10,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body { overflow: hidden; overscroll-behavior: none; }
 body { margin: 0; }
 button, input { font: inherit; }
 button { cursor: pointer; }
@@ -19,10 +20,13 @@ p, h1, h3 { margin: 0; }
 svg { display: block; width: 24px; height: 24px; }
 
 .shell {
-  position: relative;
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: var(--visible-top, 0px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  height: 100dvh;
+  height: 100vh;
+  height: var(--visible-height, 100dvh);
   max-width: 520px;
   margin-inline: auto;
   padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right))
@@ -74,7 +78,7 @@ svg { display: block; width: 24px; height: 24px; }
 }
 .menu-popover button { background: none; border: 0; width: 100%; min-height: 44px; color: var(--ink); }
 
-.main { overflow: auto; min-width: 0; }
+.main { overflow: auto; overscroll-behavior-y: contain; min-width: 0; }
 .welcome { display: flex; padding: 24px 10px; }
 .hero { margin-block: auto; transform: translateY(-14px); }
 .spark { width: 20px; height: 20px; color: #514bf3; }
