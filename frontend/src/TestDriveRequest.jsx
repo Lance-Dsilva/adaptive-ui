@@ -43,13 +43,13 @@ export function TestDriveRequest({ records }) {
   const { models, first_date: firstDate, last_date: lastDate } = records[0];
   const [model, setModel] = useState('');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
   const [pending, setPending] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState('');
 
   async function submit(event) {
     event.preventDefault();
+    const time = new FormData(event.currentTarget).get('requested_time');
     if (pending || !model || !date || !time) return;
     setPending(true);
     setError('');
@@ -67,7 +67,6 @@ export function TestDriveRequest({ records }) {
       }
       setModel('');
       setDate('');
-      setTime('');
       setAccepted(true);
     } catch {
       setError('Unable to check your selections. Try again.');
@@ -90,10 +89,9 @@ export function TestDriveRequest({ records }) {
         {models.map(item => <option key={item.id} value={item.id}>{item.year} {item.name}</option>)}
       </select></label>
       <Calendar firstDate={firstDate} lastDate={lastDate} selected={date} onSelect={setDate} />
-      <label>Preferred time (Central)<input required type="time" value={time}
-        onChange={event => setTime(event.target.value)} /></label>
+      <label>Preferred time (Central)<input name="requested_time" required type="time" /></label>
       {error && <p role="alert">{error}</p>}
-      <button type="submit" disabled={pending || !model || !date || !time}>
+      <button type="submit" disabled={pending || !model || !date}>
         {pending ? 'Checking…' : 'Submit preference'}
       </button>
     </form>

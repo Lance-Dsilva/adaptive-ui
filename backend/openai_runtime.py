@@ -520,8 +520,8 @@ class OpenAIRuntime:
             await call_tool(tool["name"], {}, call["call_id"])
             return await self._generate_sections(
                 message,
-                "In one short sentence, invite the shopper to choose a vehicle and preferred time "
-                "in the scheduling card below. Never imply an appointment was arranged.",
+                "Reply only with a brief invitation to choose a vehicle and preferred time below. "
+                "Describe choosing preferences only. Never imply an appointment was arranged.",
             )
         if re.search(
             r"\b(?:test[\s\-‑–]?drive|appointments?)\b"
