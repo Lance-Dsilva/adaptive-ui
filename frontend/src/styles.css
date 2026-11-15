@@ -85,6 +85,7 @@ svg { display: block; width: 24px; height: 24px; }
 .hero .spark { width: 24px; height: 24px; margin: 0 0 14px 3px; }
 @media (prefers-reduced-motion: no-preference) {
   .spark { animation: sparkle-spin 1.4s linear 3; }
+  .welcome .spark,
   .reply[aria-busy="true"] .spark { animation-iteration-count: infinite; }
 }
 @keyframes sparkle-spin {
