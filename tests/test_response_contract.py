@@ -175,6 +175,32 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_suv_results_keep_the_list_when_generated_copy_asks_for_a_powertrain(self):
+        import json
+        import httpx
+        from test_openai_runtime import complete
+
+        requests = []
+
+        async def generate(client, url, **kwargs):
+            requests.append(kwargs["json"])
+            draft = json.loads(kwargs["json"]["input"])["grounded_sections"]
+            draft[1] += "\nWhich CX-90 version would you like, mild hybrid or plug-in hybrid?"
+            return httpx.Response(200, json=complete({"sections": draft}))
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "fixture-model",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            response = client.post("/chat", json={"message": "Show me Mazda SUVs."})
+
+        self.assertEqual(response.status_code, 200)
+        blocks = response.json()["blocks"]
+        card = next(block for block in blocks if block.get("component") == "CarList")
+        self.assertEqual(len(card["props"]["cars"]), 3)
+        self.assertFalse(any(block.get("choice") for block in blocks))
+        self.assertFalse(any("Which CX-90" in block.get("text", "") for block in blocks))
+        self.assertEqual(len(requests), 1)
+
     def test_explicit_trim_choice_needs_one_model_call_and_keeps_both_trim_names(self):
         import json
         import httpx

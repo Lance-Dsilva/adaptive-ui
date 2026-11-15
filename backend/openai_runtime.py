@@ -431,8 +431,9 @@ class OpenAIRuntime:
                 "or 'No matching researched', retain that prefix for the empty result layout. "
                 "When the draft asks the shopper to choose between the two CX-90 powertrains, "
                 "ask which CX-90 version they want in one short question. The interface lists the options. "
-                "Otherwise do not ask for a model or powertrain clarification when the catalog has "
-                "already resolved the requested vehicle. The CX-90 Inline 6 Turbo is the mild hybrid.",
+                "Ask a follow-up question only if the draft already asks one. A list of matching "
+                "models is a complete answer to a browse request, even when it includes both CX-90 "
+                "powertrains. The CX-90 Inline 6 Turbo is the mild hybrid.",
             )
             if len(sections) != len(draft):
                 raise OpenAIRuntimeError("The model returned an unexpected number of sections.")
@@ -708,9 +709,9 @@ class OpenAIRuntime:
             return replacements
         if not has_choice and context and context[0].body_style == "suv" and _shopping_prompt(context[1]):
             return {}
-        if self._catalog_context.get() and not has_choice:
+        if self._catalog_context.get() and (len(sections) in (2, 3) or not has_choice):
             # Successful catalog results have an intro and facts with an optional caveat.
-            # Clarifications/errors have one section and must never become a card.
+            # A question added to generated copy cannot override a completed catalog result.
             if context is None or len(sections) not in (2, 3):
                 return {}
             mode = context[0].mode
