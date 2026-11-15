@@ -1,0 +1,250 @@
+schema_version: 1
+registry: ui_tools
+consumer: agent_2
+implementation_status: implemented
+enabled: true
+result_schema:
+  type: object
+  additionalProperties: false
+  properties:
+    component:
+      type: string
+    code:
+      type: string
+    props:
+      type: object
+      additionalProperties: true
+    fallback_text:
+      type: string
+  required:
+  - component
+  - code
+  - props
+  - fallback_text
+tools:
+- name: render_car_list
+  description: Show matching vehicles with prices, images, and available configuration
+    details.
+  implementation: frontend/src/CarList.jsx
+  enabled: true
+  component: CarList
+  input_schema:
+    type: object
+    properties:
+      cars:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            year:
+              type: integer
+            msrp:
+              type:
+              - number
+              - 'null'
+              minimum: 0
+            image_url:
+              type:
+              - string
+              - 'null'
+            image_caption:
+              type: string
+            image_is_reference:
+              type: boolean
+            powertrain:
+              type: string
+            configurations:
+              type: array
+              items:
+                type: object
+                required: [trim_id, model_id, name, specifications, image_url, photos]
+                properties:
+                  specifications:
+                    type: array
+                    items:
+                      type: object
+                  image_url:
+                    type: [string, 'null']
+                  photos:
+                    type: array
+                    items:
+                      type: object
+                additionalProperties: true
+            photos:
+              type: array
+              items:
+                type: object
+            specifications:
+              type: array
+              items:
+                type: object
+            source_url:
+              type: string
+            checked_on:
+              type: string
+            trims:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  msrp:
+                    type:
+                    - number
+                    - 'null'
+                    minimum: 0
+                  drivetrain:
+                    type: string
+                required:
+                - id
+                - name
+                - msrp
+                - drivetrain
+          required:
+          - id
+          - name
+          - year
+          - msrp
+          - image_url
+          - powertrain
+          - trims
+      fallback_text:
+        type: string
+    required:
+    - cars
+    - fallback_text
+    additionalProperties: false
+- name: render_car_details
+  description: Show published specifications, trim prices, and price breakdown.
+  implementation: frontend/src/VehicleExperience.jsx
+  enabled: true
+  component: VehicleDetails
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      records:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: true
+      fallback_text:
+        type: string
+    required:
+    - records
+    - fallback_text
+- name: render_car_comparison
+  description: Compare exact configurations with their original source applicability.
+  implementation: frontend/src/VehicleExperience.jsx
+  enabled: true
+  component: CarComparison
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      records:
+        type: array
+        minItems: 2
+        items:
+          type: object
+          additionalProperties: true
+      fallback_text:
+        type: string
+    required:
+    - records
+    - fallback_text
+- name: render_financing_offers
+  description: Show recorded financing terms with eligibility, expiry, and source
+    dates.
+  implementation: frontend/src/VehicleExperience.jsx
+  enabled: true
+  component: FinancingOffers
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      records:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: true
+      fallback_text:
+        type: string
+    required:
+    - records
+    - fallback_text
+- name: render_vehicle_gallery
+  description: Show sourced images with captions and configuration applicability.
+  implementation: frontend/src/VehicleExperience.jsx
+  enabled: true
+  component: VehicleGallery
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      records:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: true
+      fallback_text:
+        type: string
+    required:
+    - records
+    - fallback_text
+- name: render_color_options
+  description: Show published color choices with their price status and associated
+    media.
+  implementation: frontend/src/VehicleExperience.jsx
+  enabled: true
+  component: ColorOptions
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      records:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: true
+      fallback_text:
+        type: string
+    required:
+    - records
+    - fallback_text
+- name: render_vehicle_visualization
+  description: Show available visualization metadata and supported verified frames,
+    or explain missing assets.
+  implementation: frontend/src/VehicleExperience.jsx
+  enabled: true
+  component: VehicleVisualization
+  input_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      records:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          additionalProperties: true
+      fallback_text:
+        type: string
+    required:
+    - records
+    - fallback_text

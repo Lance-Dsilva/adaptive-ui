@@ -1,0 +1,60 @@
+.experience-card.vehicle-detail {
+  border: 1px solid #dee2eb;
+  border-radius: 20px;
+  box-shadow: none;
+  padding: 16px;
+  gap: 14px;
+  font-size: 16px;
+  line-height: 24px;
+}
+.vehicle-detail header h3 { font-size: 22px; line-height: 28px; }
+.vehicle-detail-configuration { font-size: 15px; font-weight: 600; color: var(--muted); }
+.vehicle-detail-preview img { display: block; height: 156px; object-fit: cover; margin-bottom: 4px; border-radius: 8px; }
+.vehicle-detail-selector { color: var(--muted); font-size: 13px; }
+.vehicle-detail .experience-note { font-size: 14px; line-height: 20px; }
+.vehicle-detail .experience-price { margin-bottom: 4px; }
+.vehicle-detail-facts {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 73px), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 11px 12px;
+  background: #f3f1fa;
+  border-radius: 10px;
+}
+.vehicle-detail-facts li { min-width: 0; }
+.vehicle-detail-facts strong { display: block; }
+.vehicle-detail-facts li > span { display: block; font-size: 12px; line-height: 17px; color: var(--muted); }
+.vehicle-detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.vehicle-detail-actions button { font-size: 14px; font-weight: 600; text-align: start; overflow-wrap: normal; }
+.vehicle-detail-actions .vehicle-detail-primary {
+  grid-column: 1 / -1;
+  background: var(--violet);
+  border-color: var(--violet);
+  color: white;
+}
+.vehicle-detail-actions .vehicle-detail-photo-primary { background: var(--violet); border-color: var(--violet); color: white; }
+.vehicle-detail > .vehicle-detail-expand { padding: 0; }
+.vehicle-detail-expand > summary {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  position: relative;
+  padding-inline-end: 24px;
+}
+.vehicle-detail-expand > summary::-webkit-details-marker { display: none; }
+.vehicle-detail-expand > summary::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: 7px;
+  top: 19px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-top: 2px solid var(--muted);
+  transform: rotate(45deg);
+}
+.vehicle-detail-expand[open] > summary::after { transform: rotate(135deg); }
+.vehicle-detail-expand > summary small { color: var(--muted); font-size: 13px; line-height: 19px; }
+.vehicle-detail .vehicle-spec-group > summary { font-size: 15px; font-weight: 600; }

@@ -1,0 +1,428 @@
+{
+  "requests": 70,
+  "failures": 0,
+  "max_ms": 60.21,
+  "median_ms": 37.815,
+  "results": [
+    {
+      "case": "discovery",
+      "repeat": 1,
+      "ms": 35.59,
+      "failures": []
+    },
+    {
+      "case": "details",
+      "repeat": 1,
+      "ms": 50.74,
+      "failures": []
+    },
+    {
+      "case": "colors",
+      "repeat": 1,
+      "ms": 44.8,
+      "failures": []
+    },
+    {
+      "case": "photos",
+      "repeat": 1,
+      "ms": 50.93,
+      "failures": []
+    },
+    {
+      "case": "comparison",
+      "repeat": 1,
+      "ms": 60.21,
+      "failures": []
+    },
+    {
+      "case": "finance",
+      "repeat": 1,
+      "ms": 40.85,
+      "failures": []
+    },
+    {
+      "case": "followup",
+      "repeat": 1,
+      "ms": 37.85,
+      "failures": []
+    },
+    {
+      "case": "followup_repeated",
+      "repeat": 1,
+      "ms": 37.41,
+      "failures": []
+    },
+    {
+      "case": "followup_reset",
+      "repeat": 1,
+      "ms": 38.55,
+      "failures": []
+    },
+    {
+      "case": "mild",
+      "repeat": 1,
+      "ms": 39.55,
+      "failures": []
+    },
+    {
+      "case": "year",
+      "repeat": 1,
+      "ms": 19.41,
+      "failures": []
+    },
+    {
+      "case": "rotation",
+      "repeat": 1,
+      "ms": 51.66,
+      "failures": []
+    },
+    {
+      "case": "booking",
+      "repeat": 1,
+      "ms": 20.17,
+      "failures": []
+    },
+    {
+      "case": "injection",
+      "repeat": 1,
+      "ms": 19.46,
+      "failures": []
+    },
+    {
+      "case": "discovery",
+      "repeat": 2,
+      "ms": 29.96,
+      "failures": []
+    },
+    {
+      "case": "details",
+      "repeat": 2,
+      "ms": 49.12,
+      "failures": []
+    },
+    {
+      "case": "colors",
+      "repeat": 2,
+      "ms": 44.15,
+      "failures": []
+    },
+    {
+      "case": "photos",
+      "repeat": 2,
+      "ms": 50.93,
+      "failures": []
+    },
+    {
+      "case": "comparison",
+      "repeat": 2,
+      "ms": 58.07,
+      "failures": []
+    },
+    {
+      "case": "finance",
+      "repeat": 2,
+      "ms": 34.32,
+      "failures": []
+    },
+    {
+      "case": "followup",
+      "repeat": 2,
+      "ms": 37.14,
+      "failures": []
+    },
+    {
+      "case": "followup_repeated",
+      "repeat": 2,
+      "ms": 37.55,
+      "failures": []
+    },
+    {
+      "case": "followup_reset",
+      "repeat": 2,
+      "ms": 37.93,
+      "failures": []
+    },
+    {
+      "case": "mild",
+      "repeat": 2,
+      "ms": 39.29,
+      "failures": []
+    },
+    {
+      "case": "year",
+      "repeat": 2,
+      "ms": 19.45,
+      "failures": []
+    },
+    {
+      "case": "rotation",
+      "repeat": 2,
+      "ms": 50.45,
+      "failures": []
+    },
+    {
+      "case": "booking",
+      "repeat": 2,
+      "ms": 19.53,
+      "failures": []
+    },
+    {
+      "case": "injection",
+      "repeat": 2,
+      "ms": 19.58,
+      "failures": []
+    },
+    {
+      "case": "discovery",
+      "repeat": 3,
+      "ms": 28.53,
+      "failures": []
+    },
+    {
+      "case": "details",
+      "repeat": 3,
+      "ms": 48.37,
+      "failures": []
+    },
+    {
+      "case": "colors",
+      "repeat": 3,
+      "ms": 44.11,
+      "failures": []
+    },
+    {
+      "case": "photos",
+      "repeat": 3,
+      "ms": 51.34,
+      "failures": []
+    },
+    {
+      "case": "comparison",
+      "repeat": 3,
+      "ms": 58.56,
+      "failures": []
+    },
+    {
+      "case": "finance",
+      "repeat": 3,
+      "ms": 34.73,
+      "failures": []
+    },
+    {
+      "case": "followup",
+      "repeat": 3,
+      "ms": 37.1,
+      "failures": []
+    },
+    {
+      "case": "followup_repeated",
+      "repeat": 3,
+      "ms": 37.29,
+      "failures": []
+    },
+    {
+      "case": "followup_reset",
+      "repeat": 3,
+      "ms": 37.71,
+      "failures": []
+    },
+    {
+      "case": "mild",
+      "repeat": 3,
+      "ms": 39.39,
+      "failures": []
+    },
+    {
+      "case": "year",
+      "repeat": 3,
+      "ms": 19.56,
+      "failures": []
+    },
+    {
+      "case": "rotation",
+      "repeat": 3,
+      "ms": 50.98,
+      "failures": []
+    },
+    {
+      "case": "booking",
+      "repeat": 3,
+      "ms": 20.08,
+      "failures": []
+    },
+    {
+      "case": "injection",
+      "repeat": 3,
+      "ms": 19.45,
+      "failures": []
+    },
+    {
+      "case": "discovery",
+      "repeat": 4,
+      "ms": 28.47,
+      "failures": []
+    },
+    {
+      "case": "details",
+      "repeat": 4,
+      "ms": 48.53,
+      "failures": []
+    },
+    {
+      "case": "colors",
+      "repeat": 4,
+      "ms": 43.87,
+      "failures": []
+    },
+    {
+      "case": "photos",
+      "repeat": 4,
+      "ms": 50.33,
+      "failures": []
+    },
+    {
+      "case": "comparison",
+      "repeat": 4,
+      "ms": 57.88,
+      "failures": []
+    },
+    {
+      "case": "finance",
+      "repeat": 4,
+      "ms": 34.37,
+      "failures": []
+    },
+    {
+      "case": "followup",
+      "repeat": 4,
+      "ms": 36.98,
+      "failures": []
+    },
+    {
+      "case": "followup_repeated",
+      "repeat": 4,
+      "ms": 37.75,
+      "failures": []
+    },
+    {
+      "case": "followup_reset",
+      "repeat": 4,
+      "ms": 38.58,
+      "failures": []
+    },
+    {
+      "case": "mild",
+      "repeat": 4,
+      "ms": 39.42,
+      "failures": []
+    },
+    {
+      "case": "year",
+      "repeat": 4,
+      "ms": 19.34,
+      "failures": []
+    },
+    {
+      "case": "rotation",
+      "repeat": 4,
+      "ms": 50.46,
+      "failures": []
+    },
+    {
+      "case": "booking",
+      "repeat": 4,
+      "ms": 19.41,
+      "failures": []
+    },
+    {
+      "case": "injection",
+      "repeat": 4,
+      "ms": 19.25,
+      "failures": []
+    },
+    {
+      "case": "discovery",
+      "repeat": 5,
+      "ms": 28.33,
+      "failures": []
+    },
+    {
+      "case": "details",
+      "repeat": 5,
+      "ms": 48.68,
+      "failures": []
+    },
+    {
+      "case": "colors",
+      "repeat": 5,
+      "ms": 45.15,
+      "failures": []
+    },
+    {
+      "case": "photos",
+      "repeat": 5,
+      "ms": 50.52,
+      "failures": []
+    },
+    {
+      "case": "comparison",
+      "repeat": 5,
+      "ms": 59.1,
+      "failures": []
+    },
+    {
+      "case": "finance",
+      "repeat": 5,
+      "ms": 34.74,
+      "failures": []
+    },
+    {
+      "case": "followup",
+      "repeat": 5,
+      "ms": 36.88,
+      "failures": []
+    },
+    {
+      "case": "followup_repeated",
+      "repeat": 5,
+      "ms": 36.93,
+      "failures": []
+    },
+    {
+      "case": "followup_reset",
+      "repeat": 5,
+      "ms": 37.78,
+      "failures": []
+    },
+    {
+      "case": "mild",
+      "repeat": 5,
+      "ms": 39.6,
+      "failures": []
+    },
+    {
+      "case": "year",
+      "repeat": 5,
+      "ms": 19.9,
+      "failures": []
+    },
+    {
+      "case": "rotation",
+      "repeat": 5,
+      "ms": 50.72,
+      "failures": []
+    },
+    {
+      "case": "booking",
+      "repeat": 5,
+      "ms": 19.69,
+      "failures": []
+    },
+    {
+      "case": "injection",
+      "repeat": 5,
+      "ms": 20.5,
+      "failures": []
+    }
+  ]
+}

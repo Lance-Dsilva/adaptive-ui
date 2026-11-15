@@ -1,0 +1,32 @@
+{
+  "seconds": 5.5,
+  "status": 200,
+  "response": {
+    "blocks": [
+      {
+        "type": "text",
+        "text": "Short answer: Wheelbase is the distance between a vehicle\u2019s front and rear axle centers. It matters because it strongly influences interior space, ride character, and handling."
+      },
+      {
+        "type": "text",
+        "text": "Interior space and comfort: A longer wheelbase usually means more legroom\u2014especially rear-seat legroom\u2014and a smoother ride because the car spans road imperfections over a greater distance."
+      },
+      {
+        "type": "text",
+        "text": "Ride quality and stability: Longer wheelbases tend to produce a more composed, less pitchy ride at highway speeds; shorter wheelbases often feel more bouncy but can be more agile in tight maneuvers."
+      },
+      {
+        "type": "text",
+        "text": "Turning and maneuverability: Shorter wheelbase vehicles usually have tighter turning circles and feel more nimble in parking lots and city streets; longer wheelbase cars can be harder to turn in tight spaces."
+      },
+      {
+        "type": "text",
+        "text": "Handling tradeoffs: Short wheelbase + short track can make a car quicker to change direction but twitchier; long wheelbase improves straight-line stability but can reduce cornering quickness. Suspension, weight distribution, track width, and center of gravity also matter."
+      },
+      {
+        "type": "text",
+        "text": "Practical considerations: For buyers, think about your priorities\u2014rear-seat comfort and highway stability (favor longer wheelbase) versus urban maneuverability and sportier feel (favor shorter). Wheelbase is important but not the only factor; test drives and overall vehicle packaging/suspension tuning are essential."
+      }
+    ]
+  }
+}

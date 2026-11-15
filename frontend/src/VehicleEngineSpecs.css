@@ -1,0 +1,30 @@
+.engine-fuel-ratings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 12px;
+}
+
+.engine-fuel-rating {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.engine-fuel-grade, .engine-fuel-rating > span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.engine-fuel-rating strong {
+  font-size: 17px;
+}
+
+
+.engine-spec-more {
+  margin-block-start: 8px;
+}
+
+@media (max-width: 350px) {
+  .engine-fuel-ratings { grid-template-columns: minmax(0, 1fr); }
+}

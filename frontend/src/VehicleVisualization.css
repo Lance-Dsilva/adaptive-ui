@@ -1,0 +1,28 @@
+.rotation-card { margin-top:16px; padding:16px; border:1px solid #e2e4ec; border-radius:20px; background:#fff; overflow:hidden; color:var(--ink); }
+.rotation-card h3 { margin:0; font-size:18px; line-height:25px; letter-spacing:-.02em; }
+.rotation-subtitle { margin:5px 0 16px; color:var(--muted); font-size:13px; line-height:20px; text-align:left; }
+.rotation-card label { display:grid; gap:6px; margin:0 0 14px; color:var(--muted); font-size:12px; }
+.rotation-card select { width:100%; min-width:0; max-width:100%; min-height:44px; padding:8px; border:1px solid #cbd0dd; border-radius:8px; background:#fff; color:var(--ink); font:inherit; }
+.rotation-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.rotation-view-label { color:var(--ink); font-size:13px; font-weight:600; }
+:is(.rotation-toolbar, .rotation-control-group) > button { display:inline-flex; align-items:center; justify-content:center; gap:6px; flex-shrink:0; width:44px; height:44px; min-height:44px; padding:0; border:1px solid #d8dce6; border-radius:10px; background:#fff; color:var(--ink); cursor:pointer; }
+:is(.rotation-toolbar, .rotation-control-group) > button svg { width:20px; height:20px; }
+:is(.rotation-toolbar, .rotation-control-group) > button:hover:not(:disabled) { background:#f2f0fb; border-color:#b9b0ea; }
+:is(.rotation-toolbar, .rotation-control-group) > button:disabled { color:#a4aaba; cursor:default; background:#f8f9fb; }
+:is(.rotation-toolbar, .rotation-control-group) > button:focus-visible, .rotation-stage:focus-visible { outline:2px solid var(--violet); outline-offset:2px; }
+.rotation-toolbar .rotation-reset { width:auto; padding:0 10px; border-color:transparent; color:var(--muted); font-size:12px; white-space:nowrap; }
+.rotation-stage { height:240px; margin:6px 0 12px; display:flex; align-items:center; justify-content:center; overflow:hidden; touch-action:pan-y; cursor:grab; border:1px solid #edf0f5; border-radius:12px; background:#fafbfc; }
+.rotation-stage:active { cursor:grabbing; }
+.rotation-stage img { width:100%; height:100%; object-fit:contain; user-select:none; pointer-events:none; }
+.rotation-stage p { padding:16px; font-size:13px; line-height:20px; }
+.rotation-control-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.rotation-control-group { display:flex; align-items:center; gap:6px; }
+.rotation-zoom { min-width:38px; text-align:center; font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted); }
+.rotation-stage-footer { display:flex; justify-content:space-between; gap:8px; margin-top:10px; font-size:11px; line-height:17px; color:var(--muted); }
+.rotation-stage-footer [role=status] { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.rotation-preview-note { margin:16px 0 8px; color:var(--muted); font-size:11px; line-height:17px; text-align:left; }
+.rotation-card > details { border-top:1px solid #e8eaf0; }
+.rotation-card > details > summary { min-height:44px; padding:12px 0; font-size:13px; line-height:20px; color:var(--ink); cursor:pointer; }
+.rotation-info p { margin:0 0 10px; font-size:12px; line-height:19px; color:var(--muted); text-align:left; }
+.rotation-hint { font-size:12px; line-height:19px; color:var(--muted); text-align:left; }
+@media(max-width:350px) { .rotation-card { padding:12px; }.rotation-stage { height:210px; }.rotation-control-group { gap:3px; }.rotation-zoom { min-width:33px; }.rotation-stage-footer { font-size:10px; } }

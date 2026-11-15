@@ -1,0 +1,5 @@
+model_id,model_family,brand,name,model_year,market,body_styles,powertrain,starting_msrp_usd,announcement_status,inventory_status,announcement_date,source_id,source_url,checked_on
+us-2027-mazda3,mazda3,Mazda,Mazda3,2027,US,sedan|hatchback,gasoline,24750,officially_announced,not_checked,2026-11-03,mazda3_release,https://news.mazdausa.com/2026-11-03-2027-Mazda3-Pricing-and-Packaging,2026-11-13
+us-2027-cx5,cx5,Mazda,CX-5,2027,US,SUV,gasoline,29990,officially_announced,not_checked,2026-10-26,cx5_release,https://news.mazdausa.com/2026-10-26-2027-Mazda-CX-5-Pricing-and-Packaging,2026-11-13
+us-2027-cx90-mhev,cx90,Mazda,CX-90 Inline 6 Turbo,2027,US,SUV,mild_hybrid,39700,officially_announced,not_checked,2026-10-27,cx90_release,https://news.mazdausa.com/2026-10-27-2027-Mazda-CX-90-Pricing-and-Packaging,2026-11-13
+us-2027-cx90-phev,cx90,Mazda,CX-90 Plug-in Hybrid,2027,US,SUV,plug_in_hybrid,50695,officially_announced,not_checked,2026-10-27,cx90_release,https://news.mazdausa.com/2026-10-27-2027-Mazda-CX-90-Pricing-and-Packaging,2026-11-13

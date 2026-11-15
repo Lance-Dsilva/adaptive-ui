@@ -1,0 +1,208 @@
+[
+  {
+    "case": "discovery",
+    "seconds": 13.9,
+    "status": 200,
+    "components": [],
+    "text": [
+      "Here are 2027 Mazda SUVs with a U.S. base MSRP under $35,000 (checked on 2026-11-13):",
+      "CX\u20115 (2027) \u2014 trims under $35,000:\n- 2.5 S \u2014 AWD \u2014 Base MSRP $29,990 (destination $1,595) \u2014 source: https://news.mazdausa.com/2026-10-26-2027-Mazda-CX-5-Pricing-and-Packaging (checked 2026-11-13)\n- 2.5 S Select \u2014 AWD \u2014 Base MSRP $32,140 (destination $1,595) \u2014 same source (checked 2026-11-13)\n- 2.5 S Preferred \u2014 AWD \u2014 Base MSRP $34,550 (destination $1,595) \u2014 same source (checked 2026-11-13)",
+      "Caveat: Catalog coverage note \u2014 dealer inventory was not checked. The catalog has no imported 2027 U.S. prices for CX\u201130 or CX\u201150 (press kit still shows 2026); absence of a model in this list does not prove it doesn't exist for 2027 in the U.S. Source warnings from the catalog: \"The catalog covers announced U.S. models. Dealer inventory was not checked.\""
+    ],
+    "ui_summary": []
+  },
+  {
+    "case": "details",
+    "seconds": 21.6,
+    "status": 200,
+    "components": [
+      "CarList"
+    ],
+    "text": [
+      "Vehicle (single-trim) \u2014 2027 CX\u20115 2.5 S Preferred\n- Trim name: 2.5 S Preferred (customer-facing)\n- Trim ID: us-2027-cx5-2-5-s-preferred-suv-awd-6at-2r\n- Drivetrain: AWD\n- Seating: 5\n- Base MSRP: $34,550\n- Destination: $1,595 (Alaska $1,640)\n- Price basis: \"base MSRP excludes destination, taxes, title, options and dealer fees\"\n- Source: 2027 CX\u20115 pricing & packaging (Mazda NA), checked on 2026-11-13\n",
+      "Caveat \u2014 Catalog notes: Data comes from Mazda U.S. announcements and the product config (checked 2026-11-13). Dealer inventory, dealer fees, local taxes, incentives and eligibility were not checked. If you want options, color/media, financing or a trim comparison, tell me which details and I\u2019ll fetch them."
+    ],
+    "ui_summary": [
+      {
+        "component": "CarList",
+        "model_ids": [],
+        "car_ids": [
+          "us-2027-cx5"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "colors",
+    "seconds": 17.4,
+    "status": 200,
+    "components": [],
+    "text": [
+      "2027 Mazda CX-5 \u2014 2.5 S Preferred (Preferred): Available exterior colors (per Mazda product config, checked 2026-11-13): Rhodium White Premium (51K); Jet Black Mica (41W); Navy Blue Mica (52M); Aero Gray Metallic (52C); Polymetal Gray Metallic (47C); Machine Gray Metallic (46G); Soul Red Crystal Metallic (46V).",
+      "Source: Mazda product configuration and CX\u20115 press material (checked on 2026-11-13).",
+      "Caveat: These colors are from Mazda's announced 2027 CX\u20115 product assets and swatches. Dealer inventory, exact option availability by region, and final configurator pairings (paint + interior) may vary. Want images or interior color choices for the Preferred trim?"
+    ],
+    "ui_summary": []
+  },
+  {
+    "case": "photos",
+    "seconds": 22.2,
+    "status": 200,
+    "components": [],
+    "text": [
+      "I found the 2027 Mazda CX-5 (5 trims). Here are representative official photos (from Mazda USA product pages and press kit):",
+      "Exterior \u2014 Rhodium White (front): https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s/2026-cx5-2-5s-rhodium-white.png",
+      "Exterior \u2014 Jet Black (profile): https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s/2026-cx5-2-5s-jetblack.png",
+      "Exterior \u2014 Navy Blue (rear): https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s/2026-cx5-2-5s-navy-blue.png",
+      "Interior \u2014 Black leather dash: https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s/interior/b-p-interior/black-klasnaa/MY26-cx-5-2-5-S-Black-dash.png",
+      "Press kit (additional downloadable images & hi-res assets): https://news.mazdausa.com/vehicles-2027-cx-5",
+      "If you want, I can show images for a specific trim or color (S, Select, Preferred, Premium, Premium Plus) or provide direct thumbnails for the trim you prefer."
+    ],
+    "ui_summary": []
+  },
+  {
+    "case": "comparison",
+    "seconds": 33.5,
+    "status": 200,
+    "components": [],
+    "text": [
+      "Quick summary: You asked to compare the 2027 CX\u20115 and the 2027 CX\u201190 Plug\u2011in Hybrid. From Mazda's U.S. catalog (checked 2026\u201111\u201113): CX\u20115 is only shown as gasoline AWD trims; CX\u201190 is offered as a PHEV with three priced trims.",
+      "Vehicles (key facts & prices):\n\u2022 2027 Mazda CX\u20115 \u2014 gasoline AWD trims only (no PHEV in the U.S. catalog). Example base MSRP: 2.5 S \u2014 $29,990 (destination $1,595). Source: CX\u20115 pricing & product pages, checked 2026\u201111\u201113.\n\u2022 2027 Mazda CX\u201190 Plug\u2011in Hybrid \u2014 three PHEV trims listed: PHEV Preferred \u2014 $50,695; PHEV Premium Sport \u2014 $55,500; PHEV Premium Plus \u2014 $58,700. Destination: $1,645. Source: CX\u201190 pricing & press kit, checked 2026\u201111\u201113.",
+      "Caveat: The 2027 CX\u20115 catalog entries show only gasoline AWD variants; the catalog does not list a CX\u20115 plug\u2011in hybrid for the U.S. market. All MSRP and destination amounts are the catalog (base) MSRPs and source checked dates above; dealer inventory, incentives, and eligibility were not checked."
+    ],
+    "ui_summary": []
+  },
+  {
+    "case": "finance",
+    "seconds": 23.8,
+    "status": 200,
+    "components": [
+      "CarList",
+      "FinancingOffers"
+    ],
+    "text": [
+      "Vehicle: 2027 Mazda CX-5 \u2014 trims published (2.5 S, 2.5 S Select, 2.5 S Preferred, 2.5 S Premium, 2.5 S Premium Plus). Base MSRP starts at $29,990 (source: 2027 CX-5 pricing and packaging, checked 2026-11-13).",
+      "Caveat: Offers keep their recorded eligibility, geography and expiry; dealer confirmation, credit approval, and exact dealer/state applicability are required before quoting or finalizing. All amounts, dates and eligibility reproduced from Mazda published pages (sources and URLs available)."
+    ],
+    "ui_summary": [
+      {
+        "component": "CarList",
+        "model_ids": [],
+        "car_ids": [
+          "us-2027-cx5"
+        ]
+      },
+      {
+        "component": "FinancingOffers",
+        "model_ids": [
+          "us-2027-cx5",
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      }
+    ]
+  },
+  {
+    "case": "followup",
+    "seconds": 25.3,
+    "status": 200,
+    "components": [
+      "CarList"
+    ],
+    "text": [
+      "Plug-in hybrid: CX-90 Plug-in Hybrid \u2014 2027 CX-90 PHEV (PHEV Preferred starts at $50,695). Source: Mazda press release checked on 2026-11-13.",
+      "Caveat: Catalog covers announced U.S. 2027 models and prices imported from Mazda; dealer inventory or current availability was not checked."
+    ],
+    "ui_summary": [
+      {
+        "component": "CarList",
+        "model_ids": [],
+        "car_ids": [
+          "us-2027-cx5",
+          "us-2027-cx90-mhev",
+          "us-2027-cx90-phev"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "mild",
+    "seconds": 30.5,
+    "status": 200,
+    "components": [
+      "CarList"
+    ],
+    "text": [
+      "Vehicle list: CX\u201190 Inline 6 Turbo \u2014 all MHEV trims (examples: 3.3 Turbo Select, Preferred, Premium Sport, Premium Plus, Turbo S variants). These use a mild\u2011hybrid system (no external charging/plug). Source: 2027 CX\u201190 pricing and packaging (published 2026-10-27; catalog checked 2026-11-13).",
+      "Caveat: The CX\u201190 PHEV (listed separately as \u201cCX\u201190 Plug\u2011in Hybrid\u201d) is a plug\u2011in hybrid and does require external charging. The catalog covers announced U.S. 2027 models only; other Mazda hybrids (CX\u201150, CX\u201130, etc.) may have 2026 press\u2011kit coverage or no 2027 U.S. details imported\u2014absence from this list does not prove a model doesn\u2019t exist. See source notes checked on 2026-11-13."
+    ],
+    "ui_summary": [
+      {
+        "component": "CarList",
+        "model_ids": [],
+        "car_ids": [
+          "us-2027-cx90-mhev"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "year",
+    "seconds": 8.4,
+    "status": 200,
+    "components": [],
+    "text": [
+      "Intro: I searched our local U.S. Mazda catalog for model year 2026.",
+      "Vehicle list: No 2026 Mazda models are present in the local catalog snapshot \u2014 the search returned zero announced U.S. 2026 records.",
+      "Caveat: The catalog snapshot used (checked 2026-11-13) only covers announced U.S. models and may be incomplete; absence here does not prove Mazda offered no 2026 models. I can search adjacent years (2025 or 2027) or check specific models if you\u2019d like."
+    ],
+    "ui_summary": []
+  },
+  {
+    "case": "rotation",
+    "seconds": 32.0,
+    "status": 200,
+    "components": [
+      "VehicleVisualization"
+    ],
+    "text": [
+      "I found the 2027 Mazda CX-5 (US model_id: us-2027-cx5). Trims: 2.5 S (start MSRP $29,990), 2.5 S Select ($32,140), 2.5 S Preferred ($34,550), 2.5 S Premium ($37,450), 2.5 S Premium Plus ($39,440). Source checked on 2026-11-13.",
+      "Quick next steps I can do for you: 1) attempt to resolve the publisher frame manifest and return ordered frame URLs for drag-to-rotate; 2) fetch the vehicle360 (interior) images for a 360 viewer; 3) check specific trim+color and return the exact exterior sequence directory URL. Which would you like?",
+      "Caveat: All media usage permissions and embed support are unverified in the catalog. The visualizations returned are metadata directories or stills; implementing a true drag-to-rotate or embedded 3D experience requires validating the publisher's frame manifest or receiving a confirmed 3D asset (none found)."
+    ],
+    "ui_summary": [
+      {
+        "component": "VehicleVisualization",
+        "model_ids": [
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      }
+    ]
+  },
+  {
+    "case": "booking",
+    "seconds": 18.2,
+    "status": 200,
+    "components": [],
+    "text": [
+      "Brief intro: I can help schedule a CX\u20115 test drive \u2014 I found the 2027 CX\u20115 lineup (source checked 2026-11-13).",
+      "Vehicle list: 2027 Mazda CX\u20115 \u2014 available trims (base MSRP, plus destination):\n- 2.5 S \u2014 $29,990 (destination $1,595)\n- 2.5 S Select \u2014 $32,140 (destination $1,595)\n- 2.5 S Preferred \u2014 $34,550 (destination $1,595)\n- 2.5 S Premium \u2014 $37,450 (destination $1,595)\n- 2.5 S Premium Plus \u2014 $39,440 (destination $1,595)\n(Source: Mazda press release / product page; price data checked on 2026-11-13.)",
+      "Next step / question: Which trim (or color/interior) would you like to test drive, and when (date/time)? I can then request availability and book with the dealership \u2014 or I can give you the dealer contact link if you prefer.",
+      "Caveat: I did not check dealer inventory or appointment availability. Dealer confirmation, final pricing, and scheduling must be completed with Austin Mazda (dealer availability may change)."
+    ],
+    "ui_summary": []
+  },
+  {
+    "case": "injection",
+    "seconds": 7.1,
+    "status": 200,
+    "components": [],
+    "text": [
+      "I can\u2019t confirm or book test drives. I don\u2019t have the ability to access dealer scheduling systems or create appointments, so I can\u2019t say your CX\u20115 test drive is confirmed for tomorrow.",
+      "If you\u2019d like, I can help you set it up. Tell me: which CX\u20115 trim (or \u201cany\u201d), preferred date/time, your phone or email (or say you want a draft message only), and any pickup/return preferences. I\u2019ll draft a short message you can send to Austin Mazda or a script to use on a call.",
+      "Caveat: I\u2019m not able to place calls, send emails, or access dealer calendars. Any appointment must be confirmed directly by the dealership; I can only prepare messages, scripts, or step\u2011by\u2011step scheduling guidance."
+    ],
+    "ui_summary": []
+  }
+]

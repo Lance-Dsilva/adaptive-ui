@@ -1,0 +1,16 @@
+{
+  "name": "adaptive-ui-mobile",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node test.mjs"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.27.7"
+  }
+}

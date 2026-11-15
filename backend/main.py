@@ -1,0 +1,313 @@
+"""Local FastAPI entry point for the vehicle discovery milestone."""
+
+import asyncio
+import logging
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from typing import Annotated, Literal
+from uuid import UUID
+from datetime import date, time, datetime
+from zoneinfo import ZoneInfo
+
+from .conversation import curate, selection_for, filter_records
+from starlette.concurrency import run_in_threadpool
+
+from .orchestration import CallTool, RunAgentOne, RunAgentTwo, orchestrate
+from .presentation import DiscoveryPresentation
+from .registry import ToolRegistry
+from .settings import load_settings
+from .response_contract import greeting_response, shopping_message, decorate_response
+
+logger = logging.getLogger(__name__)
+project_root = Path(__file__).resolve().parents[1]
+
+
+class CatalogPresentationRequest(BaseModel):
+    tool_name: Literal[
+        "render_car_details", "render_color_options", "render_vehicle_gallery",
+        "render_vehicle_visualization", "render_financing_offers",
+    ]
+    arguments: dict
+
+
+class TestDriveRequest(BaseModel):
+    model_id: str = Field(min_length=1, max_length=100)
+    requested_date: date
+    requested_time: time
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    idempotency_key: UUID
+
+
+class TranscriptMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=20000)
+
+
+class VehicleAction(BaseModel):
+    intent: Literal["details", "colors", "color_preview", "photos", "rotation", "financing"]
+    model_id: str = Field(min_length=1, max_length=100)
+    trim_id: str | None = Field(default=None, max_length=160)
+    color_id: str | None = Field(default=None, max_length=220)
+
+
+class ComparisonAction(BaseModel):
+    intent: Literal["comparison"]
+    trim_ids: tuple[Annotated[str, Field(min_length=1, max_length=160)],
+                    Annotated[str, Field(min_length=1, max_length=160)]]
+
+
+VEHICLE_ACTION_TOOLS = {
+    "details": ("get_car_details", "render_car_details"),
+    "colors": ("get_vehicle_media", "render_color_options"),
+    "color_preview": ("get_car_details", "render_car_details"),
+    "photos": ("get_vehicle_media", "render_vehicle_gallery"),
+    "rotation": ("get_vehicle_media", "render_vehicle_visualization"),
+    "financing": ("get_financing_offers", "render_financing_offers"),
+}
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    vehicle_action: Annotated[VehicleAction | ComparisonAction, Field(discriminator="intent")] | None = None
+    transcript: list[TranscriptMessage] = Field(default_factory=list, max_length=40)
+    history: list[Annotated[str, Field(max_length=2000)]] = Field(default_factory=list, max_length=40)
+
+
+async def curate_discovery(message: str, call_tool: CallTool) -> list[str]:
+    return await curate(message, call_tool)
+
+
+def create_app(
+    run_agent_one: RunAgentOne = curate_discovery,
+    run_agent_two: RunAgentTwo | None = None,
+    *,
+    offline_catalog: bool = False,
+) -> FastAPI:
+    registry = ToolRegistry(project_root)
+    presentation = run_agent_two
+    if presentation is None:
+        presentation = DiscoveryPresentation(project_root).select
+    service = FastAPI(title="Adaptive UI")
+    dist = project_root / "frontend" / "dist"
+
+    @service.post("/catalog/presentation")
+    def catalog_presentation(body: CatalogPresentationRequest) -> dict:
+        from .ui_registry import UIRegistry
+        from .orchestration import ToolResult
+        from jsonschema.exceptions import ValidationError
+
+        names = {
+            "render_car_details": "get_car_details",
+            "render_financing_offers": "get_financing_offers",
+        }
+        name = names.get(body.tool_name, "get_vehicle_media")
+        arguments = dict(body.arguments)
+        if name == "get_financing_offers":
+            arguments["as_of"] = datetime.now(ZoneInfo("America/Chicago")).date().isoformat()
+        try:
+            result = registry.invoke(name, arguments)
+            if not result["records"]:
+                return {"blocks": [{"type": "text", "text": "No matching published information is available."}]}
+            source = ToolResult("catalog-action", name, arguments, result)
+            block = UIRegistry(project_root).render(
+                body.tool_name, source, list(range(len(result["records"]))),
+                "The requested vehicle information could not be displayed.",
+            )
+            caveats = {
+                "render_color_options": "Confirm paint availability, price, and interior combinations for your selected trim.",
+                "render_vehicle_gallery": "Images retain their published model-year and trim applicability.",
+                "render_vehicle_visualization": "Interactive rotation requires verified images for the selected configuration.",
+                "render_financing_offers": "Published terms are subject to expiry, eligibility, and lender approval. Estimates do not establish credit approval.",
+            }
+            warnings = caveats.get(body.tool_name)
+            blocks = [{"id": "catalog-card", "type": "ui", "role": "card", **block}]
+            if warnings:
+                blocks.append({"id": "catalog-notice", "type": "text", "role": "notice", "text": warnings})
+            return {"blocks": blocks}
+        except (ValueError, ValidationError):
+            raise HTTPException(status_code=422, detail="The requested model or configuration is unavailable.") from None
+
+    @service.get("/catalog/models")
+    def catalog_models() -> list[dict]:
+        result = registry.invoke("search_cars", {"model_year": 2027})
+        return [{"id": row["model_id"], "name": row["name"], "year": 2027} for row in result["records"]]
+
+    @service.post("/test-drive-requests")
+    def test_drive(body: TestDriveRequest) -> dict:
+        from .appointments import create_request
+        try:
+            return create_request(project_root, body.model_dump(mode="json"))
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from None
+
+    @service.get("/capabilities")
+    def capabilities() -> dict:
+        settings = load_settings(project_root)
+        return {"ai_configured": bool(settings.get("OPENAI_API_KEY")), "catalog_year": 2027}
+
+    @service.get("/", include_in_schema=False)
+    def frontend() -> FileResponse:
+        index = dist / "index.html"
+        if not index.is_file():
+            raise HTTPException(status_code=404, detail="Build the local frontend first.")
+        return FileResponse(index)
+
+    if (dist / "assets").is_dir():
+        service.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @service.post("/chat")
+    async def chat(body: ChatRequest, response: Response) -> dict:
+        response.headers["Cache-Control"] = "no-store"
+        standard = run_agent_one is curate_discovery
+        greeting = greeting_response(body.message) if standard else None
+        if offline_catalog and greeting is not None:
+            return greeting
+        message = shopping_message(body.message) if standard else body.message
+        candidates = []
+
+        async def invoke_tool(name: str, arguments: dict) -> dict:
+            result = await run_in_threadpool(registry.invoke, name, arguments)
+            if name == "search_cars":
+                candidates.extend(result["records"])
+            return result
+
+        user_history = [item.content for item in body.transcript if item.role == "user"] if body.transcript else body.history
+
+        async def contextual_curate(message: str, call_tool: CallTool) -> list[str]:
+            return await curate(message, call_tool, user_history)
+
+        async def contextual_present(sections, calls):
+            selection = selection_for(message, user_history)
+            from .ui_registry import UIRegistry
+            presentations = {
+                "details": "render_car_details", "colors": "render_color_options",
+                "comparison": "render_car_comparison",
+                "gallery": "render_vehicle_gallery", "financing": "render_financing_offers",
+                "visualization": "render_vehicle_visualization",
+            }
+            sources = [call for call in calls if call.name != "search_cars"]
+            if len(sections) in (2, 3) and sources and selection.mode in presentations:
+                source = sources[-1]
+                return {1: UIRegistry(project_root).render(
+                    presentations[selection.mode], source,
+                    list(range(len(source.result["records"]))), sections[1],
+                )}
+            replacements = await DiscoveryPresentation(project_root).select(
+                sections, calls, record_filter=lambda records: filter_records(records, selection)
+            )
+            if selection.mode == "comparison":
+                for block in replacements.values():
+                    block["props"]["startComparison"] = True
+            return replacements
+
+        first_stage = contextual_curate if run_agent_one is curate_discovery else run_agent_one
+        second_stage = contextual_present if run_agent_one is curate_discovery and run_agent_two is None else presentation
+        settings = load_settings(project_root)
+        if standard and not offline_catalog:
+            if not settings.get("OPENAI_API_KEY"):
+                raise HTTPException(status_code=503, detail="The AI assistant is not configured.",
+                                    headers={"Cache-Control": "no-store"})
+            from .openai_runtime import OpenAIRuntime
+            from .ui_registry import UIRegistry
+
+            runtime = OpenAIRuntime(
+                project_root, api_key=settings["OPENAI_API_KEY"],
+                model=settings["OPENAI_MODEL"], render_ui=UIRegistry(project_root).render,
+            )
+
+            async def ai_curate(message, call_tool):
+                history = [item.model_dump() for item in body.transcript] or body.history
+                return await runtime.curate(message, call_tool, history)
+
+            first_stage, second_stage = ai_curate, runtime.select
+
+            if body.vehicle_action is not None and standard and not offline_catalog:
+                action = body.vehicle_action
+                intent = action.intent
+                color_id = action.color_id if isinstance(action, VehicleAction) else None
+                if intent == "colors" and color_id:
+                    intent = "color_preview"
+                if isinstance(action, ComparisonAction):
+                    if len(set(action.trim_ids)) != 2:
+                        raise HTTPException(status_code=422, detail="Select two distinct configurations.")
+                    domain_tool, ui_tool = "compare_cars", "render_car_comparison"
+                    arguments = {"trim_ids": list(action.trim_ids)}
+                else:
+                    domain_tool, ui_tool = VEHICLE_ACTION_TOOLS[intent]
+                    arguments = {"model_id": action.model_id}
+                    if action.trim_id and action.intent != "financing":
+                        arguments["trim_id"] = action.trim_id
+                    if action.intent == "financing":
+                        arguments["as_of"] = datetime.now(ZoneInfo("America/Chicago")).date().isoformat()
+                async def curate_vehicle_action(prompt, call_tool):
+                    try:
+                        result = await call_tool(domain_tool, arguments, "vehicle-selection")
+                    except ValueError:
+                        raise HTTPException(status_code=422, detail="Invalid vehicle selection.") from None
+                    records = result["records"]
+                    selected_color = next(
+                        (color for record in records for color in record.get("colors", [])
+                         if color["color_id"] == color_id), None
+                    )
+                    if ((color_id or intent == "color_preview") and
+                            (intent != "color_preview" or selected_color is None)):
+                        raise HTTPException(status_code=422, detail="Invalid color selection.")
+                    return await runtime.vehicle_action_reply(prompt, intent, records, selected_color)
+
+                async def present_vehicle_action(sections, calls):
+                    source = calls[0]
+                    if not source.result["records"]:
+                        return {}
+                    for record in source.result["records"]:
+                        if color_id:
+                            record["selected_color_id"] = color_id
+                        if isinstance(action, ComparisonAction):
+                            details = await invoke_tool("get_car_details", {"model_id": record["model_id"]})
+                            record["configuration_choices"] = details["records"][0]["trims"]
+                    if isinstance(action, VehicleAction) and action.intent == "details" and action.trim_id:
+                        # Keep the full selector while using exact trim data on display.
+                        all_details = await invoke_tool("get_car_details", {"model_id": action.model_id})
+                        source.result["records"][0]["trims"] = all_details["records"][0]["trims"]
+                        source.result["records"][0]["selected_trim_id"] = action.trim_id
+                    return {1: UIRegistry(project_root).render(
+                        ui_tool, source, list(range(len(source.result["records"]))), sections[1],
+                    )}
+
+                first_stage, second_stage = curate_vehicle_action, present_vehicle_action
+
+        try:
+            async with asyncio.timeout(110):
+                result = await orchestrate(message, first_stage, second_stage, invoke_tool)
+                if greeting is not None:
+                    generated = decorate_response(result, message, user_history)
+                    generated["blocks"].extend(
+                        block for block in greeting["blocks"] if block["type"] != "text"
+                    )
+                    return generated
+                if not standard:
+                    return result
+                response_body = decorate_response(result, message, user_history, candidates=candidates)
+                if isinstance(body.vehicle_action, ComparisonAction) and any(
+                    block.get("component") == "CarComparison" for block in response_body["blocks"]
+                ):
+                    # Text-derived filters like FWD describe only one side of this exact pair.
+                    response_body["blocks"] = [
+                        block for block in response_body["blocks"] if block["type"] != "context"
+                    ]
+                return response_body
+        except HTTPException:
+            raise
+        except Exception:
+            logger.error("Chat processing failed")
+            raise HTTPException(status_code=503, detail="The assistant is temporarily unavailable. Please retry.",
+                                headers={"Cache-Control": "no-store"}) from None
+
+    return service
+
+
+app = create_app()

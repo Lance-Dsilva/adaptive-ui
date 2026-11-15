@@ -1,0 +1,73 @@
+[
+  {
+    "case": "discovery",
+    "seconds": 33.9,
+    "status": 200,
+    "components": [
+      "CarList"
+    ],
+    "text": [
+      "Here are 2027 Mazda SUVs with a base MSRP under $35,000 (U.S., prices from Mazda press/configurator, checked 2026-11-13):",
+      "Caveat: Catalog lists announced U.S. 2027 models and published base MSRPs; base MSRP excludes destination, taxes, title, options and dealer fees. Dealer inventory, local availability, and incentive/finance offers were not checked."
+    ],
+    "ui_summary": [
+      {
+        "component": "CarList",
+        "model_ids": [],
+        "car_ids": [
+          "us-2027-cx5"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "details",
+    "seconds": 17.9,
+    "status": 200,
+    "components": [
+      "CarList"
+    ],
+    "text": [
+      "Here\u2019s the 2027 CX\u20115 Preferred I found for the U.S. market (source: Mazda release).",
+      "Caveat: Catalog data covers announced U.S. configurations and MSRP only; dealer inventory, final options/pricing, and incentives were not checked. All facts above come from the Mazda product/release feed (checked 2026\u201111\u201113). If you want trim specs (engine power, fuel economy, or a full options list), or photos in a particular color, I can retrieve those next."
+    ],
+    "ui_summary": [
+      {
+        "component": "CarList",
+        "model_ids": [],
+        "car_ids": [
+          "us-2027-cx5"
+        ]
+      }
+    ]
+  },
+  {
+    "case": "colors",
+    "seconds": 41.3,
+    "status": 200,
+    "components": [
+      "ColorOptions",
+      "VehicleGallery"
+    ],
+    "text": [
+      "Here are the available colors for the 2027 Mazda CX-5 2.5 S Preferred (checked on 2026-11-13):",
+      "Caveat: These color names, codes and published extra-cost amounts come from Mazda USA product assets (source: mazdausa.com and CX\u20115 press kit). Exact exterior\u2194interior combinations, option applicability and final pricing should be confirmed in the Mazda configurator or dealer (media checked on 2026-11-13)."
+    ],
+    "ui_summary": [
+      {
+        "component": "ColorOptions",
+        "model_ids": [
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      },
+      {
+        "component": "VehicleGallery",
+        "model_ids": [
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      }
+    ]
+  }
+]

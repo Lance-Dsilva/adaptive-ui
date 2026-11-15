@@ -1,0 +1,74 @@
+[
+  {
+    "case": "details",
+    "seconds": 27.6,
+    "status": 200,
+    "components": [
+      "VehicleDetails"
+    ],
+    "text": [
+      "Quick intro\n2027 Mazda CX\u20115 \u2014 2.5 S Preferred: mid\u2011level AWD SUV with Mazda\u2019s SKYACTIV\u2011G 2.5 powertrain and premium comfort/tech features.",
+      "Caveats\nMSRP shown is base price and excludes destination, taxes, title, options and dealer fees. Configurator shows multiple exterior/interior combos; exact combinations and dealer inventory were not checked. For live availability, exact options or quotes (or lease/APR offers) I can pull current offers or dealer stock if you want."
+    ],
+    "ui_summary": [
+      {
+        "component": "VehicleDetails",
+        "model_ids": [
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      }
+    ]
+  },
+  {
+    "case": "photos",
+    "seconds": 40.3,
+    "status": 200,
+    "components": [
+      "VehicleGallery",
+      "VehicleVisualization"
+    ],
+    "text": [
+      "Caveat: All photos and swatches are publisher-supplied (Mazda USA). Usage permission for reuse is unverified; image directories include metadata for rotation/360 sequences but frame manifests/3D meshes are not resolved. Catalog checked_on 2026-11-13 \u2014 confirm any image reuse rights or configurator-specific color/trim combinations before publication."
+    ],
+    "ui_summary": [
+      {
+        "component": "VehicleGallery",
+        "model_ids": [
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      },
+      {
+        "component": "VehicleVisualization",
+        "model_ids": [
+          "us-2027-cx5"
+        ],
+        "car_ids": []
+      }
+    ]
+  },
+  {
+    "case": "comparison",
+    "seconds": 42.8,
+    "status": 200,
+    "components": [
+      "CarComparison"
+    ],
+    "text": [
+      "Quick summary: Comparing the 2027 Mazda CX-5 (gasoline 2.5 S) vs the 2027 Mazda CX-90 Plug\u2011in Hybrid (PHEV Preferred).",
+      "Key differences (concise): \u2022 Powertrain: CX-5 = 2.5L gasoline 4\u2011cyl (187 hp / 186 lb\u2011ft). CX\u201190 PHEV = plug\u2011in hybrid (combined 323 hp / 369 lb\u2011ft) + 17.8 kWh battery. \u2022 Electric range: CX\u201190 PHEV up to 27 miles EV. CX\u20115 has no electric-only range. \u2022 Price (base MSRP): CX\u20115 $29,990 + destination; CX\u201190 PHEV $50,695 + destination (MSRPs exclude destination, taxes, title, options, dealer fees). \u2022 Seating/cargo: CX\u20115 = 5 passengers; cargo rear seats up 33.7 cu ft, down 66.5 cu ft. CX\u201190 PHEV = 7 passengers (3 rows). \u2022 Efficiency/performance: CX\u20115 AWD EPA 24/30 (city/hwy). CX\u201190 PHEV provides PHEV performance and electric-first commuting (spec sheet values above).",
+      "Notes & caveats: Data from Mazda U.S. 2027 release and product pages (checked 2026-11-13). Trims and published specs apply to the announced U.S. configurations; exact exterior/interior color availability, seating option effects and final configurator combinations may vary. MSRPs exclude destination, taxes, title, options and dealer fees. Want a deeper side\u2011by\u2011side table (range, towing, curb weight, detailed cargo dimensions) or a comparison of a different CX\u20115 trim?"
+    ],
+    "ui_summary": [
+      {
+        "component": "CarComparison",
+        "model_ids": [
+          "us-2027-cx5",
+          "us-2027-cx90-phev"
+        ],
+        "car_ids": []
+      }
+    ]
+  }
+]

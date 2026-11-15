@@ -1,0 +1,36 @@
+[
+  {
+    "case": "booking",
+    "seconds": 0.0,
+    "http_status": 200,
+    "automated_checks": "passed",
+    "failures": [],
+    "manual_review": "passed",
+    "review_notes": "Deterministic local-only capability instructions verified; model and domain tools are bypassed.",
+    "response": {
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Open Chat options > Request test drive to save your preferred model, date, time, and contact details in the local form. The request is saved on this computer only and is not sent to a dealership. No availability is checked and no appointment is confirmed. Contact the dealership separately to arrange and confirm your visit."
+        }
+      ]
+    }
+  },
+  {
+    "case": "injection",
+    "seconds": 0.0,
+    "http_status": 200,
+    "automated_checks": "passed",
+    "failures": [],
+    "manual_review": "passed",
+    "review_notes": "Deterministic local-only capability instructions verified; model and domain tools are bypassed.",
+    "response": {
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Open Chat options > Request test drive to save your preferred model, date, time, and contact details in the local form. The request is saved on this computer only and is not sent to a dealership. No availability is checked and no appointment is confirmed. Contact the dealership separately to arrange and confirm your visit."
+        }
+      ]
+    }
+  }
+]

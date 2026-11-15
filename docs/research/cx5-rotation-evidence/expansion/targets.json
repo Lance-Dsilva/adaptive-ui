@@ -1,0 +1,212 @@
+[
+  {
+    "row": {
+      "visualization_id": "27CX5SE-51K",
+      "model_id": "us-2027-cx5",
+      "product_trim_code": "27CX5SE",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s-select/exterior/51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx5_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-5",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-5/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-5%2F04-btv%2F001-trims%2F34-jellies%2F2-5-s-select%2Fexterior%2F51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27CX5PF-51K",
+      "model_id": "us-2027-cx5",
+      "product_trim_code": "27CX5PF",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s-preferred/exterior/51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx5_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-5",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-5/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-5%2F04-btv%2F001-trims%2F34-jellies%2F2-5-s-preferred%2Fexterior%2F51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27CX5PR-51K",
+      "model_id": "us-2027-cx5",
+      "product_trim_code": "27CX5PR",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s-premium/exterior/51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx5_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-5",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-5/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-5%2F04-btv%2F001-trims%2F34-jellies%2F2-5-s-premium%2Fexterior%2F51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27CX5PP-51K",
+      "model_id": "us-2027-cx5",
+      "product_trim_code": "27CX5PP",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-5/04-btv/001-trims/34-jellies/2-5-s-premium-plus/exterior/51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx5_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-5",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-5/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-5%2F04-btv%2F001-trims%2F34-jellies%2F2-5-s-premium-plus%2Fexterior%2F51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27C90SE-51K",
+      "model_id": "us-2027-cx90-mhev",
+      "product_trim_code": "27C90SE",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-90/04-btv/002-exterior/exterior-360/turbo-select/rhodium-white-51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx90_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-90",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-90/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-90%2F04-btv%2F002-exterior%2Fexterior-360%2Fturbo-select%2Frhodium-white-51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27C90PF-51K",
+      "model_id": "us-2027-cx90-mhev",
+      "product_trim_code": "27C90PF",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-90/04-btv/002-exterior/exterior-360/turbo-preffered/rhodium-white-51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx90_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-90",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-90/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-90%2F04-btv%2F002-exterior%2Fexterior-360%2Fturbo-preffered%2Frhodium-white-51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27C90PR-51K",
+      "model_id": "us-2027-cx90-mhev",
+      "product_trim_code": "27C90PR",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-90/04-btv/002-exterior/exterior-360/turbo-premium-sport/3row/rhodium-white-51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx90_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-90",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-90/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-90%2F04-btv%2F002-exterior%2Fexterior-360%2Fturbo-premium-sport%2F3row%2Frhodium-white-51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27C90PP-51K",
+      "model_id": "us-2027-cx90-mhev",
+      "product_trim_code": "27C90PP",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-90/04-btv/002-exterior/exterior-360/turbo-premium-plus1/rhodium-white-51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx90_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-90",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-90/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-90%2F04-btv%2F002-exterior%2Fexterior-360%2Fturbo-premium-plus1%2Frhodium-white-51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27C90SPR-51K",
+      "model_id": "us-2027-cx90-mhev",
+      "product_trim_code": "27C90SPR",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-90/04-btv/002-exterior/exterior-360/turbo-s-premium-sport/3row/rhodium-white-51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx90_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-90",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-90/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-90%2F04-btv%2F002-exterior%2Fexterior-360%2Fturbo-s-premium-sport%2F3row%2Frhodium-white-51k"
+  },
+  {
+    "row": {
+      "visualization_id": "27C90SPP-51K",
+      "model_id": "us-2027-cx90-mhev",
+      "product_trim_code": "27C90SPP",
+      "color_code": "51K",
+      "kind": "exterior_image_sequence_directory",
+      "url": "https://www.mazdausa.com/content/dam/musa/vehicle-assets/siteassets/vehicles/2027/cx-90/04-btv/002-exterior/exterior-360/turbo-premium-plus/rhodium-white-51k",
+      "frame_urls_json": "[]",
+      "model_3d_url": "",
+      "status": "directory_observed_frames_not_resolved",
+      "integration": "Resolve the publisher frame manifest and validate frame order before implementing drag-to-rotate. Directory URL is metadata.",
+      "usage_permission_status": "unverified",
+      "source_id": "cx90_product",
+      "source_url": "https://www.mazdausa.com/vehicles/cx-90",
+      "checked_on": "2026-11-13",
+      "caption": "",
+      "applicability": ""
+    },
+    "endpoint": "https://www.mazdausa.com/content/musa/us/en/vehicles/2027/cx-90/_jcr_content.trimdata.json?exteriorDirectory=%2Fcontent%2Fdam%2Fmusa%2Fvehicle-assets%2Fsiteassets%2Fvehicles%2F2027%2Fcx-90%2F04-btv%2F002-exterior%2Fexterior-360%2Fturbo-premium-plus%2Frhodium-white-51k"
+  }
+]

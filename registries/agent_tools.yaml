@@ -1,0 +1,113 @@
+schema_version: 1
+registry: agent_tools
+consumer: agent_1
+implementation_status: implemented
+enabled: true
+data_root: data/mazda/us/2027
+
+# Load with a safe YAML parser. Validate schemas and bind implemented functions
+# before exposing enabled tools to the model through the chosen runtime adapter.
+result_contract:
+  required_fields: [records, sources, checked_on, warnings]
+  records: Complete matching records, including related images and metadata.
+  sources: Source URLs and dates for the returned records.
+  warnings: Relevant coverage gaps, source conflicts, and expired offers.
+  preservation: FastAPI retains each complete tool result for Agent 2.
+
+result_schema:
+  type: object
+  properties:
+    records:
+      type: array
+      items: {type: object, additionalProperties: true}
+    sources:
+      type: array
+      items: {type: object, additionalProperties: true}
+    checked_on: {type: string, format: date}
+    warnings:
+      type: array
+      items: {type: string}
+  required: [records, sources, checked_on, warnings]
+  additionalProperties: true
+
+tools:
+  - name: search_cars
+    description: Find announced U.S. Mazda vehicles by model year, body style, drivetrain, and base MSRP.
+    implementation: backend.catalog:Catalog.search_cars
+    enabled: true
+    reads: [models.csv, trims.csv, assets.csv, coverage.csv, sources.csv]
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        model_year: {type: integer}
+        model: {type: string}
+        body_style: {type: string, enum: [sedan, hatchback, suv]}
+        drivetrain: {type: string, enum: [FWD, AWD, RWD]}
+        max_msrp_usd: {type: number, minimum: 0}
+      required: [model_year]
+
+  - name: get_car_details
+    description: Return a vehicle's trims, specifications, colors, media, sources, and known data gaps.
+    implementation: backend.catalog:Catalog.get_car_details
+    enabled: true
+    reads: [models.csv, trims.csv, specifications.csv, colors.csv, assets.csv, visualizations.csv, coverage.csv, sources.csv]
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        model_id: {type: string}
+        trim_id: {type: string}
+      required: [model_id]
+
+  - name: compare_cars
+    description: Compare selected configurations using their exact prices, drivetrains, seating, and published specifications.
+    implementation: backend.catalog:Catalog.compare_cars
+    enabled: true
+    reads: [models.csv, trims.csv, specifications.csv, colors.csv, assets.csv, visualizations.csv, coverage.csv, sources.csv]
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        trim_ids:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items: {type: string}
+      required: [trim_ids]
+
+  - name: get_financing_offers
+    description: Read U.S. offers for a model with APR, term, eligibility, geography, source date, and expiry.
+    implementation: backend.catalog:Catalog.get_financing_offers
+    enabled: true
+    reads: [models.csv, trims.csv, offers.csv, sources.csv]
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        model_id: {type: string}
+        as_of: {type: string, format: date}
+        offer_type: {type: string, enum: [apr, loyalty_cash, lease]}
+      required: [model_id, as_of]
+    behavior:
+      - Evaluate expiry against as_of and return expiry status with each offer.
+      - Report missing verified terms as unavailable data.
+      - Preserve model year and national or regional eligibility.
+
+  - name: get_vehicle_media
+    description: Return image URLs, color swatches, source metadata, and available visualization references for a model or trim.
+    implementation: backend.catalog:Catalog.get_vehicle_media
+    enabled: true
+    reads: [models.csv, trims.csv, colors.csv, assets.csv, visualizations.csv, sources.csv]
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties:
+        model_id: {type: string}
+        trim_id: {type: string}
+        color_code: {type: string}
+      required: [model_id]
+    behavior:
+      - Return exact-match media and family-level media with their applicability labels.
+      - Preserve original URLs, query strings, captions, and source_record_json values.
+      - Return visualization status and asset kind alongside each reference.
