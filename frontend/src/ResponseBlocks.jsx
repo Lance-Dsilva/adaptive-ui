@@ -52,6 +52,13 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
     const key = block.id || index;
     if (block.type === 'text') {
       const role = textRoles.has(block.role) ? block.role : 'body';
+      if (Array.isArray(block.citations)) {
+        return <p key={key} className="response-body">
+          {block.text}
+          {block.citations.map(({ url, label }) => <a key={url} href={url} target="_blank"
+            rel="noopener noreferrer" className="web-citation"> {label}</a>)}
+        </p>;
+      }
       return <ReplyText key={key} text={block.text} role={role} />;
     }
     if (block.type === 'context' && Array.isArray(block.items)) {

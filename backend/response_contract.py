@@ -116,7 +116,7 @@ def decorate_response(response, message, history, *, candidates=()):
     for index, block in enumerate(blocks):
         block['id'] = f'block-{index}'
         if block['type'] == 'text':
-            text = _customer_text(block['text'])
+            text = block['text'] if 'citations' in block else _customer_text(block['text'])
             if not text:
                 continue
             block['text'] = text

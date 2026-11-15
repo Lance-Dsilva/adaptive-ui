@@ -3,10 +3,11 @@
 import os
 from pathlib import Path
 
+DEFAULT_MODEL = "gpt-6-luna"
+
 
 def load_settings(root: Path) -> dict[str, str]:
-    default_model = "gpt-5-mini"
-    values = {"OPENAI_MODEL": default_model}
+    values = {"OPENAI_MODEL": DEFAULT_MODEL}
     path = root / ".env"
     if path.is_file():
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -23,5 +24,5 @@ def load_settings(root: Path) -> dict[str, str]:
     model = values["OPENAI_MODEL"].strip()
     if len(model) > 1 and model[0] in ("'", '"') and model[0] == model[-1]:
         model = model[1:-1].strip()
-    values["OPENAI_MODEL"] = model or default_model
+    values["OPENAI_MODEL"] = model or DEFAULT_MODEL
     return values

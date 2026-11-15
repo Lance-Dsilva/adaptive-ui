@@ -315,6 +315,7 @@ svg { display: block; width: 24px; height: 24px; }
 
 .response-answer { font-size: 17px; line-height: 24px; font-weight: 600; white-space: pre-wrap; }
 .response-body { font-size: 16px; line-height: 24px; white-space: pre-wrap; }
+.web-citation { margin-inline-start: 0.3em; font-size: 0.875em; text-decoration: underline; overflow-wrap: anywhere; }
 .response-notice, .response-status { font-size: 14px; line-height: 20px; color: var(--muted); white-space: pre-wrap; }
 .response-context {
   display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none;

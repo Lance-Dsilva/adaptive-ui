@@ -93,13 +93,13 @@ class HTTPFlowTests(unittest.TestCase):
                 self.assertNotIn("test-secret", response.text)
 
     def test_hosted_model_setting_accepts_shell_style_quotes(self):
-        for model in ('gpt-5-mini', '"gpt-5-mini"', " 'gpt-5-mini' ", '""'):
+        for model in ('gpt-6-luna', '"gpt-6-luna"', " 'gpt-6-luna' ", '""'):
             with self.subTest(model=model), tempfile.TemporaryDirectory() as root, patch.dict(
                 "os.environ", {"OPENAI_API_KEY": "fixture-key", "OPENAI_MODEL": model}, clear=True,
             ):
                 self.assertEqual(load_settings(Path(root)), {
                     "OPENAI_API_KEY": "fixture-key",
-                    "OPENAI_MODEL": "gpt-5-mini",
+                    "OPENAI_MODEL": "gpt-6-luna",
                 })
 
     def test_hosted_app_disables_local_test_drive_storage(self):

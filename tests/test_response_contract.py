@@ -175,6 +175,51 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_mazda_web_lookup_returns_provider_links_and_catalog_still_returns_cards(self):
+        import json
+        import httpx
+        from test_openai_runtime import complete
+
+        requests = []
+        text = "The RX-7 is a Mazda sports car. ([Mazda](https://www.mazda.com/history))"
+        lookup = {"status": "completed", "output": [
+            {"type": "web_search_call", "status": "completed"},
+            {"type": "message", "content": [{
+                "type": "output_text", "text": text, "annotations": [
+                    {"type": "url_citation", "url": "https://www.mazda.com/history", "end_index": len(text)},
+                    {"type": "url_citation", "url": "javascript:void(0)", "end_index": len(text)},
+                ],
+            }]},
+        ]}
+
+        async def generate(client, url, **kwargs):
+            payload = kwargs["json"]
+            requests.append(payload)
+            reply = lookup if payload.get("tools") == [{"type": "web_search"}] else complete({
+                "sections": json.loads(payload["input"])["grounded_sections"],
+            })
+            return httpx.Response(200, json=reply)
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "gpt-6-luna",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            for _ in range(2):
+                web = client.post("/chat", json={"message": "When did Mazda launch the RX-7?"})
+                self.assertEqual(web.status_code, 200)
+                block = web.json()["blocks"][0]
+                self.assertEqual(block["text"], "The RX-7 is a Mazda sports car.")
+                self.assertEqual(block["citations"], [{"url": "https://www.mazda.com/history", "label": "mazda.com"}])
+                self.assertEqual(web.headers["Cache-Control"], "no-store")
+            local = client.post("/chat", json={"message": "Show me Mazda SUVs."})
+            self.assertEqual(local.status_code, 200)
+            self.assertTrue(any(block.get("component") == "CarList" for block in local.json()["blocks"]))
+
+        self.assertEqual(len(requests), 3)
+        self.assertTrue(all(request["model"] == "gpt-6-luna" and not request["store"] for request in requests))
+        self.assertEqual(requests[0]["tool_choice"], "required")
+        self.assertNotEqual(requests[0]["instructions"], requests[1]["instructions"])
+        self.assertNotIn("tools", requests[2])
+
     def test_chat_distinguishes_upstream_timeout_rate_limit_and_rejection(self):
         import httpx
 

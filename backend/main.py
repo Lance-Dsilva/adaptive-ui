@@ -216,6 +216,7 @@ def create_app(
         first_stage = contextual_curate if run_agent_one is curate_discovery else run_agent_one
         second_stage = contextual_present if run_agent_one is curate_discovery and run_agent_two is None else presentation
         settings = load_settings(project_root)
+        runtime = None
         if standard and not offline_catalog:
             if not settings.get("OPENAI_API_KEY"):
                 raise HTTPException(status_code=503, detail="The AI assistant is not configured.",
@@ -292,6 +293,8 @@ def create_app(
         try:
             async with asyncio.timeout(110):
                 result = await orchestrate(message, first_stage, second_stage, invoke_tool)
+                if runtime is not None and runtime.web_blocks is not None:
+                    result = {"blocks": runtime.web_blocks}
                 if greeting is not None:
                     generated = decorate_response(result, message, user_history)
                     generated["blocks"].extend(
