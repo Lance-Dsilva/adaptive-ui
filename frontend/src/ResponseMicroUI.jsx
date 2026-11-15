@@ -30,7 +30,7 @@ function listItems(items, checks = false) {
 
 const inlineTokens = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|==[^=\n]+==|`[^`\n]+`)/g;
 
-function Inline({ text }) {
+export function Inline({ text }) {
   return text.split(inlineTokens).map((part, index) => {
     if (index % 2 === 0) return part;
     const prefix = part.startsWith('**') ? '**' : part.startsWith('==') ? '==' : part[0];

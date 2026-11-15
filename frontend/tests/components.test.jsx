@@ -202,6 +202,15 @@ test('discovery merges year and body scope into the compact toolbar and shows re
   assert.doesNotMatch(applied, /Clear budget|Response context/);
 });
 
+test('web replies format inline emphasis and keep publisher links clickable', () => {
+  const html = renderToStaticMarkup(<ResponseBlocks blocks={[{
+    type: 'text', role: 'answer', text: 'The RX-7 launched in **March 1978**.',
+    citations: [{ url: 'https://www.mazda.com/history', label: 'mazda.com' }],
+  }]} />);
+  assert.match(html, /<strong>March 1978<\/strong>/);
+  assert.match(html, /<a href="https:\/\/www\.mazda\.com\/history"[^>]*> mazda\.com<\/a>/);
+});
+
 test('response roles determine typography independently of position and retain adjacent block order', () => {
   const blocks = [
     { type: 'text', id: 'body-first', role: 'body', text: 'Opening body' },

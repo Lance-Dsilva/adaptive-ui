@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { ReplyText } from './ResponseMicroUI.jsx';
+import { Inline, ReplyText } from './ResponseMicroUI.jsx';
 import { ReplyControlsDisabled, ReplySummary } from './ReplyControls.jsx';
 import { CarList } from './CarList.jsx';
 import {
@@ -54,7 +54,7 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
       const role = textRoles.has(block.role) ? block.role : 'body';
       if (Array.isArray(block.citations)) {
         return <p key={key} className="response-body">
-          {block.text}
+          <Inline text={block.text} />
           {block.citations.map(({ url, label }) => <a key={url} href={url} target="_blank"
             rel="noopener noreferrer" className="web-citation"> {label}</a>)}
         </p>;
