@@ -175,6 +175,36 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_financing_action_grounds_curator_in_same_offer_and_trim_as_card(self):
+        import json
+        import httpx
+        from test_openai_runtime import complete
+
+        requests = []
+
+        async def generate(client, url, **kwargs):
+            requests.append(json.loads(kwargs["json"]["input"]))
+            return httpx.Response(200, json=complete({"sections": [
+                "Here are the published financing options for your CX-5 Select.", "Published offers.",
+            ]}))
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "gpt-6-luna",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            reply = client.post("/chat", json={
+                "message": "Show financing for the CX-5 2.5 S Select.",
+                "vehicle_action": {
+                    "intent": "financing", "model_id": "us-2027-cx5",
+                    "trim_id": "us-2027-cx5-2-5-s-select-suv-awd-6at-2r",
+                },
+            })
+
+        self.assertEqual(reply.status_code, 200)
+        card = next(block for block in reply.json()["blocks"] if block.get("component") == "FinancingOffers")
+        self.assertTrue(requests[0]["catalog"]["records_available"])
+        self.assertEqual(requests[0]["catalog"]["offers"][0]["apr_percent"], card["props"]["records"][0]["apr_percent"])
+        self.assertEqual(requests[0]["catalog"]["offers"][0]["vehicle_price_usd"], "32140")
+
     def test_current_apr_followup_checks_exact_offer_online_for_previous_model(self):
         import json
         import httpx

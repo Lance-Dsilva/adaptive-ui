@@ -461,11 +461,22 @@ class OpenAIRuntime:
                 "drivetrain": record["drivetrain"],
                 "seats": record["seating_capacity"].split("|"),
             } for record in records]
+        if intent == "financing":
+            facts["offers"] = [{
+                key: record.get(key) for key in (
+                    "offer_type", "apr_percent", "term_months_max", "cash_amount_usd",
+                    "lease_monthly_usd", "lease_due_at_signing_usd", "expires_on", "expiry_status",
+                    "eligibility", "vehicle_price_usd", "vehicle_price_basis",
+                )
+            } for record in records]
         lead = (
             "First give one useful, factual difference between the exact configurations. "
             if intent == "comparison" else
             "First name the selected paint or interior material in one short sentence without commenting on image availability. "
-            if intent == "color_preview" else "First acknowledge what the shopper asked to see. "
+            if intent == "color_preview" else
+            "First give a short, factual answer using the supplied published offers and their expiry status. "
+            "When offers exist, describe them as published financing information. "
+            if intent == "financing" else "First give the shopper a useful answer in one short sentence. "
         )
         sections = await self._generate_sections(
             _json({"question": prompt, "catalog": facts}),
