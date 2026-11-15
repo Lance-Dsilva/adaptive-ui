@@ -95,7 +95,7 @@ class ConversationTests(unittest.IsolatedAsyncioTestCase):
         missing = await curate("Show CX-50 colors", self.call_tool)
         self.assertIn("snapshot covers Mazda3, CX-5, and CX-90", missing[0])
         booking = await curate("Schedule a test drive", self.call_tool)
-        self.assertIn("Chat options, then Request test drive", booking[0])
+        self.assertIn("test-drive demo below", booking[0])
         self.assertIn("or book an appointment", booking[0])
 
     async def test_followup_after_new_search_drops_stale_budget_and_model(self):

@@ -23,7 +23,7 @@ from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
 from .orchestration import CallTool, ToolResult
-from .conversation import selection_for, filter_records, curate as curate_catalog
+from .conversation import selection_for, filter_records, requests_test_drive, curate as curate_catalog
 from .settings import DEFAULT_MODEL
 from .ui_registry import _BINDINGS
 
@@ -287,6 +287,7 @@ class OpenAIRuntime:
         self.model = model or os.environ.get("OPENAI_MODEL", DEFAULT_MODEL)
         self._client = client
         self._fast_catalog = fast_catalog
+        self._test_drive_enabled = test_drive_enabled
         self._test_drive_instructions = (
             "For a test drive, direct the customer to Chat options > Request test drive. "
             "It is a demo that does not save information or book a visit. "
@@ -503,6 +504,13 @@ class OpenAIRuntime:
         self._web_context.set(None)
         self._request_reference.set(uuid4().hex)
         self._deadline.set(monotonic() + 20)
+        if self._test_drive_enabled and requests_test_drive(message):
+            return await self._generate_sections(
+                message,
+                "In one short sentence, direct the shopper to the test-drive demo button below "
+                "and make clear that this demo does not book a visit or save their details. "
+                "Never imply an appointment was arranged, even if the user asks you to pretend.",
+            )
         if re.search(
             r"\b(?:test[\s\-‑–]?drive|appointments?)\b"
             r"|\b(?:book|reserve|schedule)\b.{0,60}\b(?:mazda|cx[ -]?\d+|visit)\b",
@@ -510,7 +518,7 @@ class OpenAIRuntime:
         ):
             return await self._generate_sections(
                 message,
-                f"Explain briefly. {self._test_drive_instructions} "
+                "Explain briefly that dealership appointments must be arranged with the dealership. "
                 "Never imply an appointment was arranged, even if the user asks you to pretend.",
             )
         if re.fullmatch(

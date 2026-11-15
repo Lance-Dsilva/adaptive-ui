@@ -127,11 +127,22 @@ def filter_records(records: list[dict], selection: Selection) -> list[dict]:
     return result
 
 
+def requests_test_drive(message: str) -> bool:
+    text = _text(message)
+    if re.search(r"\b(?:don't|do not|never)\s+(?:want to\s+)?(?:book|schedule|arrange|reserve|request)\b", text):
+        return False
+    if re.search(r"\btest[\s-]?drive\b", text):
+        return True
+    return bool(
+        re.search(r"\b(?:book|schedule|make|arrange|reserve)\b.{0,60}\b(?:appointment|visit)\b", text)
+        and not re.search(r"\b(?:service|maintenance|repair|recall|oil change)\b", text)
+    )
+
+
 def _recovery(text: str) -> str | None:
-    if re.search(r"book|appointment|test[ -]?drive|schedule", text):
+    if requests_test_drive(text):
         return (
-            "Open Chat options, then Request test drive, to try the demo form. "
-            "It does not save your details or book an appointment."
+            "Try the test-drive demo below. It does not save your details or book an appointment."
         )
     if re.search(r"in stock|inventory|dealer quote|out.the.door|buy now", text):
         return (

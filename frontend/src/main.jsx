@@ -184,13 +184,13 @@ function App() {
 
       <main className={welcome && !showTestDrive ? 'main welcome' : 'main conversation'} ref={log}
         aria-label={showTestDrive ? 'Test-drive request' : welcome ? 'Welcome' : 'Conversation'}>
-        <div className="test-drive-panel" hidden={!showTestDrive}>
+        {showTestDrive && <div className="test-drive-panel">
           <button className="back-to-chat" type="button" disabled={requestPending} onClick={() => {
             setShowTestDrive(false);
             input.current?.focus();
           }}>Back to chat</button>
-          <TestDriveRequest active={showTestDrive} onPendingChange={setRequestPending} />
-        </div>
+          <TestDriveRequest onPendingChange={setRequestPending} />
+        </div>}
         {!showTestDrive && (welcome ? (
           <section className="hero">
             <Icon name="spark" className="spark" />
@@ -208,7 +208,14 @@ function App() {
               <Icon name="spark" className="spark" />
               {turn.blocks ? <ResponseBlocks blocks={turn.blocks} compare={turn.compare}
                 disabled={index !== turns.length - 1 || pending || requestPending}
-                onAction={action => send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id)} /> : turn.error ? (
+                onAction={action => {
+                  if (action.open_test_drive === true) {
+                    setMenu(false);
+                    setShowTestDrive(true);
+                    return;
+                  }
+                  send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id);
+                }} /> : turn.error ? (
                 <div className="chat-error">
                   <p>{CHAT_ERRORS[turn.error]}</p>
                   <button type="button" disabled={index !== turns.length - 1 || pending || requestPending}

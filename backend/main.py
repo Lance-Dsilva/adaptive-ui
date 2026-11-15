@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 from datetime import date, time, datetime
 from zoneinfo import ZoneInfo
 
-from .conversation import curate, selection_for, filter_records
+from .conversation import curate, selection_for, filter_records, requests_test_drive
 from .appointments import test_drive
 from .openai_runtime import OpenAIRuntimeError
 from starlette.concurrency import run_in_threadpool
@@ -305,6 +305,12 @@ def create_app(
                 if not standard:
                     return result
                 response_body = decorate_response(result, message, user_history, candidates=candidates)
+                if test_drive_enabled and body.vehicle_action is None and requests_test_drive(message):
+                    response_body["blocks"].append({
+                        "id": "test-drive-demo", "type": "actions", "label": "Test drive",
+                        "actions": [{"id": "open-test-drive", "label": "Open test-drive demo",
+                                     "message": "Open the test-drive demo.", "open_test_drive": True}],
+                    })
                 if isinstance(body.vehicle_action, ComparisonAction) and any(
                     block.get("component") == "CarComparison" for block in response_body["blocks"]
                 ):

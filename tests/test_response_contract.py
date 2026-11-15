@@ -175,6 +175,27 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_booking_prompts_offer_the_demo_in_chat(self):
+        import httpx
+        from test_openai_runtime import complete
+
+        async def generate(client, url, **kwargs):
+            return httpx.Response(200, json=complete({"sections": ["Here is your next step."]}))
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "gpt-6-luna",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            for message, expected in (
+                ("Book appointment", True), ("Book test drive", True),
+                ("Book a maintenance appointment", False),
+                ("Don't book a test drive", False),
+            ):
+                with self.subTest(message=message):
+                    reply = client.post("/chat", json={"message": message})
+                    self.assertEqual(reply.status_code, 200)
+                    actions = [action for block in reply.json()["blocks"] for action in block.get("actions", [])]
+                    self.assertEqual(any(action.get("open_test_drive") for action in actions), expected)
+
     def test_financing_action_grounds_curator_in_same_offer_and_trim_as_card(self):
         import json
         import httpx
