@@ -11,6 +11,7 @@ from .presentation import _car_props
 
 
 _BINDINGS = {
+    "render_test_drive": ("TestDriveRequest", "frontend/src/TestDriveRequest.jsx", {"get_test_drive_options"}),
     "render_car_list": ("CarList", "frontend/src/CarList.jsx", {"search_cars"}),
     "render_car_details": (
         "VehicleDetails", "frontend/src/VehicleExperience.jsx", {"get_car_details"},

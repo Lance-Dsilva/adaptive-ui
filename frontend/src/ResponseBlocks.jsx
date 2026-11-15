@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { Inline, ReplyText } from './ResponseMicroUI.jsx';
 import { ReplyControlsDisabled, ReplySummary } from './ReplyControls.jsx';
 import { CarList } from './CarList.jsx';
+import { TestDriveRequest } from './TestDriveRequest.jsx';
 import {
   VehicleDetails, VehicleGallery, ColorOptions, FinancingOffers,
   VehicleVisualization, CarComparison,
@@ -9,7 +10,7 @@ import {
 
 const vehicleComponents = {
   VehicleDetails, VehicleGallery, ColorOptions, FinancingOffers,
-  VehicleVisualization, CarComparison,
+  VehicleVisualization, CarComparison, TestDriveRequest,
 };
 const textRoles = new Set(['answer', 'body', 'notice', 'status']);
 

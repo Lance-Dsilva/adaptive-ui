@@ -1,119 +1,101 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
-const EMPTY_FIELDS = { model_id: '', requested_date: '', requested_time: '' };
+const calendarLabel = new Intl.DateTimeFormat('en-US', {
+  month: 'long', year: 'numeric', timeZone: 'UTC',
+});
+const dayLabel = new Intl.DateTimeFormat('en-US', { dateStyle: 'full', timeZone: 'UTC' });
+const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function TestDriveRequest({ active = true, onPendingChange }) {
-  const [models, setModels] = useState([]);
-  const [fields, setFields] = useState(EMPTY_FIELDS);
-  const [phase, setPhase] = useState('edit');
+function Calendar({ firstDate, lastDate, selected, onSelect }) {
+  const [month, setMonth] = useState(firstDate.slice(0, 7));
+  const [year, number] = month.split('-').map(Number);
+  const start = new Date(Date.UTC(year, number - 1, 1));
+  const dayCount = new Date(Date.UTC(year, number, 0)).getUTCDate();
+
+  function move(offset) {
+    setMonth(new Date(Date.UTC(year, number - 1 + offset, 1)).toISOString().slice(0, 7));
+  }
+
+  return <div className="test-drive-calendar">
+    <div className="test-drive-calendar-header">
+      <button type="button" aria-label="Previous month" disabled={month <= firstDate.slice(0, 7)}
+        onClick={() => move(-1)}>‹</button>
+      <strong aria-live="polite">{calendarLabel.format(start)}</strong>
+      <button type="button" aria-label="Next month" disabled={month >= lastDate.slice(0, 7)}
+        onClick={() => move(1)}>›</button>
+    </div>
+    <div role="group" aria-label="Preferred date" className="test-drive-calendar-days">
+      {weekdays.map(day => <span key={day} aria-hidden="true">{day}</span>)}
+      {Array.from({ length: start.getUTCDay() }, (_, index) => <span key={index} aria-hidden="true" />)}
+      {Array.from({ length: dayCount }, (_, index) => {
+        const day = index + 1;
+        const date = new Date(Date.UTC(year, number - 1, day));
+        const value = date.toISOString().slice(0, 10);
+        return <button key={value} type="button" disabled={value < firstDate || value > lastDate}
+          aria-label={dayLabel.format(date)} aria-pressed={selected === value}
+          onClick={() => onSelect(value)}>{day}</button>;
+      })}
+    </div>
+  </div>;
+}
+
+export function TestDriveRequest({ records }) {
+  const { models, first_date: firstDate, last_date: lastDate } = records[0];
+  const [model, setModel] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [pending, setPending] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const heading = useRef(null);
-  const [reload, setReload] = useState(0);
-  useEffect(() => {
-    onPendingChange?.(phase === 'sending');
-  }, [phase, onPendingChange]);
-  useEffect(() => {
-    if (active) heading.current?.focus();
-  }, [active, phase]);
-  const sending = useRef(false);
-  useEffect(() => {
-    if (!active) return;
-    setLoading(true);
-    setError('');
-    const controller = new AbortController();
-    fetch('/catalog/models', { signal: controller.signal }).then(response => {
-      if (!response.ok) throw new Error();
-      return response.json();
-    }).then(data => {
-      setModels(data);
-      setLoading(false);
-    }).catch(error => {
-      if (error.name !== 'AbortError') {
-        setError('Vehicle choices could not be loaded. Try loading them again.');
-        setLoading(false);
-      }
-    });
-    return () => controller.abort();
-  }, [active, reload]);
-  const model = models.find(item => item.id === fields.model_id);
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
 
-  async function submit() {
-    if (sending.current) return;
-    sending.current = true;
-    setPhase('sending');
+  async function submit(event) {
+    event.preventDefault();
+    if (pending || !model || !date || !time) return;
+    setPending(true);
     setError('');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch('/test-drive-requests', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fields), signal: controller.signal,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model_id: model, requested_date: date, requested_time: time }),
+        signal: AbortSignal.timeout(30000),
       });
-      if (response.status === 422) {
-        const failure = await response.json();
-        setError(typeof failure.detail === 'string' ? failure.detail : 'Please check your request details.');
-        setPhase('edit');
+      const result = await response.json();
+      if (!response.ok || result.status !== 'demo_accepted') {
+        setError(typeof result.detail === 'string' ? result.detail : 'Check your selections and try again.');
         return;
       }
-      if (!response.ok) throw new Error();
-      const result = await response.json();
-      if (result.status !== 'demo_accepted') throw new Error();
-      setFields(EMPTY_FIELDS);
-      setPhase('complete');
+      setModel('');
+      setDate('');
+      setTime('');
+      setAccepted(true);
     } catch {
-      setError('The demo couldn’t finish. Try again.');
-      setPhase('review');
+      setError('Unable to check your selections. Try again.');
     } finally {
-      clearTimeout(timer);
-      sending.current = false;
+      setPending(false);
     }
   }
 
-  if (phase === 'complete') return <section className="experience-card" role="status">
-    <h3 tabIndex="-1" ref={heading}>Test-drive demo complete</h3>
-    <p>No details were saved and no appointment was booked.</p>
-    <button type="button" onClick={() => setPhase('edit')}>Try another test drive</button>
+  if (accepted) return <section className="experience-card" role="status">
+    <h3>Test-drive demo complete</h3>
+    <p>Your selections were cleared. To book a visit, contact the dealership.</p>
   </section>;
 
-  return <section className="experience-card">
-    <h3 tabIndex="-1" ref={heading}>{phase === 'edit' ? 'Test drive' : 'Review your test drive'}</h3>
-    <p>Choose a preferred date and time in America/Chicago. This demo does not save details or book a visit.</p>
-    {error && <p role="alert">{error}</p>}
-    <p role="status" aria-live="polite">{phase === 'sending' ? 'Checking your selection…' : ''}</p>
-    {phase === 'edit' && !loading && models.length === 0 && <button type="button" onClick={() => setReload(value => value + 1)}>Reload vehicle choices</button>}
-    {phase === 'edit' ? <form className="request-fields" onSubmit={event => {
-      event.preventDefault();
-      const form = new FormData(event.currentTarget);
-      const next = Object.fromEntries(Object.keys(fields).map(field => [field, String(form.get(field) || '').trim()]));
-      if (Object.values(next).some(value => !value)) {
-        setError('Complete every field before reviewing your request.');
-        return;
-      }
-      setFields(next);
-      setError('');
-      setPhase('review');
-    }}>
-      <label>Vehicle<select name="model_id" required value={fields.model_id} disabled={loading}
-        onChange={event => setFields(current => ({ ...current, model_id: event.target.value }))}>
-        <option value="">{loading ? 'Loading models…' : 'Choose a model'}</option>
+  return <section className="experience-card test-drive-card">
+    <h3>Test drive</h3>
+    <p className="experience-note">Demo only. Your selections aren’t saved and no appointment is booked.</p>
+    <form className="request-fields" onSubmit={submit}>
+      <label>Vehicle<select required value={model} onChange={event => setModel(event.target.value)}>
+        <option value="">Choose a model</option>
         {models.map(item => <option key={item.id} value={item.id}>{item.year} {item.name}</option>)}
       </select></label>
-      {[['requested_date', 'Preferred date', 'date'], ['requested_time', 'Preferred time', 'time']].map(([field, label, type]) =>
-        <label key={field}>{label}<input name={field} required type={type} value={fields[field]}
-          min={type === 'date' ? today : undefined}
-          onChange={event => setFields(current => ({ ...current, [field]: event.target.value }))} /></label>)}
-      <button type="submit" disabled={loading || !models.length}>Review request</button>
-    </form> : <>
-      <dl><div><dt>Vehicle</dt><dd>{model?.name}</dd></div>
-        <div><dt>Preferred time</dt><dd>{fields.requested_date} at {fields.requested_time}</dd></div></dl>
-      <div className="experience-actions">
-        <button type="button" disabled={phase === 'sending'} onClick={submit}>
-          {phase === 'sending' ? 'Checking…' : 'Accept test-drive demo'}
-        </button>
-        {phase === 'review' && <button type="button" onClick={() => setPhase('edit')}>Edit details</button>}
-      </div>
-    </>}
+      <Calendar firstDate={firstDate} lastDate={lastDate} selected={date} onSelect={setDate} />
+      <label>Preferred time (Central)<input required type="time" value={time}
+        onChange={event => setTime(event.target.value)} /></label>
+      {error && <p role="alert">{error}</p>}
+      <button type="submit" disabled={pending || !model || !date || !time}>
+        {pending ? 'Checking…' : 'Submit preference'}
+      </button>
+    </form>
   </section>;
 }

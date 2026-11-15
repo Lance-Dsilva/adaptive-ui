@@ -289,9 +289,8 @@ class OpenAIRuntime:
         self._fast_catalog = fast_catalog
         self._test_drive_enabled = test_drive_enabled
         self._test_drive_instructions = (
-            "For a test drive, direct the customer to Chat options > Request test drive. "
-            "It is a demo that does not save information or book a visit. "
-            "Contact the dealership to arrange a real visit."
+            "For a test drive, invite the shopper to choose a vehicle and a preferred time. "
+            "Never claim dealership availability or a confirmed appointment."
             if test_drive_enabled else
             "Test-drive requests are unavailable in the hosted app. Direct the customer to contact "
             "the dealership to arrange a visit."
@@ -505,11 +504,24 @@ class OpenAIRuntime:
         self._request_reference.set(uuid4().hex)
         self._deadline.set(monotonic() + 20)
         if self._test_drive_enabled and requests_test_drive(message):
+            tool = self._domain["get_test_drive_options"]
+            response = await self._request({
+                "instructions": "Call the scheduling tool to present test-drive options.",
+                "input": message,
+                "tools": [{"type": "function", "name": tool["name"], "description": tool["description"],
+                           "parameters": tool["input_schema"], "strict": True}],
+                "tool_choice": {"type": "function", "name": tool["name"]},
+                "parallel_tool_calls": False,
+            })
+            call = next((item for item in response["output"]
+                         if item.get("type") == "function_call" and item.get("name") == tool["name"]), None)
+            if response.get("status") != "completed" or not call or not call.get("call_id"):
+                raise OpenAIRuntimeError("The assistant could not open test-drive scheduling.")
+            await call_tool(tool["name"], {}, call["call_id"])
             return await self._generate_sections(
                 message,
-                "In one short sentence, direct the shopper to the test-drive demo button below "
-                "and make clear that this demo does not book a visit or save their details. "
-                "Never imply an appointment was arranged, even if the user asks you to pretend.",
+                "In one short sentence, invite the shopper to choose a vehicle and preferred time "
+                "in the scheduling card below. Never imply an appointment was arranged.",
             )
         if re.search(
             r"\b(?:test[\s\-‑–]?drive|appointments?)\b"
@@ -621,7 +633,7 @@ class OpenAIRuntime:
                 "parameters": tool["input_schema"],
                 "strict": False,
             }
-            for tool in self._domain.values()
+            for tool in self._domain.values() if tool["name"] != "get_test_drive_options"
         ]
         today = datetime.now(ZoneInfo("America/Chicago")).date().isoformat()
         instructions = (

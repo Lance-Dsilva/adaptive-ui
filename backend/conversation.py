@@ -142,7 +142,7 @@ def requests_test_drive(message: str) -> bool:
 def _recovery(text: str) -> str | None:
     if requests_test_drive(text):
         return (
-            "Try the test-drive demo below. It does not save your details or book an appointment."
+            "Choose a vehicle and a preferred time in the test-drive card below."
         )
     if re.search(r"in stock|inventory|dealer quote|out.the.door|buy now", text):
         return (

@@ -378,7 +378,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         for expected in (
             "no live dealership inventory connection",
             "contact a dealer, send calls or emails",
-            "does not save information or book a visit",
+            "Never claim dealership availability or a confirmed appointment",
             "AI sales assistant",
             "Do not ask for contact details in chat",
             "mean unknown, never zero",
@@ -446,22 +446,31 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_booking_uses_fresh_generation_with_explicit_capability_limits(self):
         requests = []
+        calls = []
 
         def transport(request):
-            requests.append(json.loads(request.content))
-            return httpx.Response(200, json=complete({"sections": [f"Generated reply {len(requests)}"]}))
+            payload = json.loads(request.content)
+            requests.append(payload)
+            if payload.get("tool_choice"):
+                return httpx.Response(200, json={"status": "completed", "output": [{
+                    "type": "function_call", "name": "get_test_drive_options",
+                    "call_id": "call-booking", "arguments": "{}",
+                }]})
+            return httpx.Response(200, json=complete({"sections": ["Choose a preferred time."]}))
 
         async def invoke(*args):
-            self.fail("Booking response must not invoke domain tools")
+            calls.append(args)
+            return {}
 
         message = "Can I schedule a CX-5 test drive?"
         async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as client:
             runtime = OpenAIRuntime(ROOT, api_key="fixture-only", client=client)
-            for number in (1, 2):
-                self.assertEqual(await runtime.curate(message, invoke), [f"Generated reply {number}"])
-        self.assertEqual([request["input"] for request in requests], [message, message])
-        self.assertIn("Never imply an appointment was arranged", requests[0]["instructions"])
-        self.assertNotIn("tools", requests[0])
+            for _ in range(2):
+                self.assertEqual(await runtime.curate(message, invoke), ["Choose a preferred time."])
+        self.assertEqual(calls, [("get_test_drive_options", {}, "call-booking")] * 2)
+        self.assertEqual([request["input"] for request in requests], [message] * 4)
+        self.assertIn("Never imply an appointment was arranged", requests[1]["instructions"])
+        self.assertNotIn("save", requests[1]["instructions"])
 
 
     async def test_default_catalog_routes_grounded_sections_and_preserves_raw_handoff(self):

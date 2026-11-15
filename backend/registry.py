@@ -2,12 +2,14 @@
 
 from collections.abc import Callable, Mapping
 from pathlib import Path
+from functools import partial
 from typing import Any
 
 from jsonschema import Draft202012Validator
 import yaml
 
 from .catalog import Catalog
+from .appointments import get_test_drive_options
 
 
 class ToolRegistry:
@@ -25,6 +27,7 @@ class ToolRegistry:
             for name in ("search_cars", "get_car_details", "compare_cars",
                          "get_financing_offers", "get_vehicle_media")
         }
+        bindings["backend.appointments:get_test_drive_options"] = partial(get_test_drive_options, project_root)
         if manifest["enabled"]:
             for entry in manifest["tools"]:
                 if entry.get("enabled") is not True:

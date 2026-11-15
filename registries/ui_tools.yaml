@@ -248,3 +248,33 @@ tools:
     required:
     - records
     - fallback_text
+- name: render_test_drive
+  description: Show vehicle, calendar, and time controls for a test drive directly in chat.
+  implementation: frontend/src/TestDriveRequest.jsx
+  enabled: true
+  component: TestDriveRequest
+  input_schema:
+    type: object
+    additionalProperties: false
+    required: [records, fallback_text]
+    properties:
+      fallback_text: {type: string}
+      records:
+        type: array
+        minItems: 1
+        maxItems: 1
+        items:
+          type: object
+          required: [models, first_date, last_date]
+          properties:
+            models:
+              type: array
+              items:
+                type: object
+                required: [id, name, year]
+                properties:
+                  id: {type: string}
+                  name: {type: string}
+                  year: {type: string}
+            first_date: {type: string}
+            last_date: {type: string}

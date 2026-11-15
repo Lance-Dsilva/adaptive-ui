@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ResponseBlocks, previousTurnsFor, responseText } from './ResponseBlocks.jsx';
-import { TestDriveRequest } from './TestDriveRequest.jsx';
 import './styles.css';
 
 const DISCOVER = 'Show me Mazda SUVs.';
@@ -27,8 +26,6 @@ function Icon({ name, ...props }) {
 function App() {
   const [aiConfigured, setAiConfigured] = useState(false);
   const [testDriveEnabled, setTestDriveEnabled] = useState(false);
-  const [showTestDrive, setShowTestDrive] = useState(false);
-  const [requestPending, setRequestPending] = useState(false);
   const [draft, setDraft] = useState('');
   const [turns, setTurns] = useState([]);
   const [pending, setPending] = useState(false);
@@ -106,7 +103,7 @@ function App() {
 
   async function send(message, compare = false, retryId = null, action = null, contextTurnId = null) {
     const text = message.trim();
-    if (!text || activeRequest.current || requestPending) return;
+    if (!text || activeRequest.current) return;
     const id = retryId ?? nextId.current++;
     const controller = new AbortController();
     activeRequest.current = controller;
@@ -127,7 +124,6 @@ function App() {
       update({ error: false });
     }
     setPending(true);
-    setShowTestDrive(false);
     let receivedResponse = false;
     try {
       const response = await fetch('/chat', {
@@ -168,30 +164,23 @@ function App() {
           <button className="icon-button" type="button" aria-label="Chat options" aria-expanded={menu}
             onClick={() => setMenu(!menu)}><Icon name="more" /></button>
           {menu && <div className="menu-popover">
-            <button type="button" disabled={pending || requestPending} onClick={() => {
+            <button type="button" disabled={pending} onClick={() => {
               setTurns([]);
-              setShowTestDrive(false);
               setDraft('');
               setMenu(false);
               input.current?.focus();
             }}>New chat</button>
-            {testDriveEnabled && <button type="button" disabled={pending || requestPending} onClick={() => {
-              setShowTestDrive(true); setMenu(false);
+            {testDriveEnabled && <button type="button" disabled={pending} onClick={() => {
+              setMenu(false);
+              send('Book a test drive.');
             }}>Request test drive</button>}
           </div>}
         </div>
       </header>
 
-      <main className={welcome && !showTestDrive ? 'main welcome' : 'main conversation'} ref={log}
-        aria-label={showTestDrive ? 'Test-drive request' : welcome ? 'Welcome' : 'Conversation'}>
-        {showTestDrive && <div className="test-drive-panel">
-          <button className="back-to-chat" type="button" disabled={requestPending} onClick={() => {
-            setShowTestDrive(false);
-            input.current?.focus();
-          }}>Back to chat</button>
-          <TestDriveRequest onPendingChange={setRequestPending} />
-        </div>}
-        {!showTestDrive && (welcome ? (
+      <main className={welcome ? 'main welcome' : 'main conversation'} ref={log}
+        aria-label={welcome ? 'Welcome' : 'Conversation'}>
+        {welcome ? (
           <section className="hero">
             <Icon name="spark" className="spark" />
             <h1>Find your<br />next Mazda.</h1>
@@ -207,24 +196,17 @@ function App() {
             <div className="reply" aria-live="polite" aria-busy={!turn.blocks && !turn.error}>
               <Icon name="spark" className="spark" />
               {turn.blocks ? <ResponseBlocks blocks={turn.blocks} compare={turn.compare}
-                disabled={index !== turns.length - 1 || pending || requestPending}
-                onAction={action => {
-                  if (action.open_test_drive === true) {
-                    setMenu(false);
-                    setShowTestDrive(true);
-                    return;
-                  }
-                  send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id);
-                }} /> : turn.error ? (
+                disabled={index !== turns.length - 1 || pending}
+                onAction={action => send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id)} /> : turn.error ? (
                 <div className="chat-error">
                   <p>{CHAT_ERRORS[turn.error]}</p>
-                  <button type="button" disabled={index !== turns.length - 1 || pending || requestPending}
+                  <button type="button" disabled={index !== turns.length - 1 || pending}
                     onClick={() => send(turn.message, turn.compare, turn.id, turn.action, turn.contextTurnId ?? null)}>Try again</button>
                 </div>
               ) : <p role="status">Working on your request…</p>}
             </div>
           </article>
-        )))}
+        ))}
       </main>
 
       <footer className="footer">
@@ -233,10 +215,10 @@ function App() {
           event.preventDefault();
           send(draft);
         }}>
-          <input disabled={requestPending} aria-label="Message" placeholder={aiConfigured ? 'Ask about your next Mazda…' : 'Ask about 2027 Mazda models…'} value={draft} maxLength={2000}
+          <input aria-label="Message" placeholder={aiConfigured ? 'Ask about your next Mazda…' : 'Ask about 2027 Mazda models…'} value={draft} maxLength={2000}
             ref={input} onChange={event => setDraft(event.target.value)} />
           <button className="send icon-button" type="submit" aria-label="Send message"
-            disabled={!draft.trim() || pending || requestPending}><Icon name="send" /></button>
+            disabled={!draft.trim() || pending}><Icon name="send" /></button>
         </form>
       </footer>
     </div>

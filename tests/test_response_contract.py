@@ -175,11 +175,16 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
-    def test_booking_prompts_offer_the_demo_in_chat(self):
+    def test_booking_prompts_render_inline_schedule_from_tool_results(self):
         import httpx
         from test_openai_runtime import complete
 
         async def generate(client, url, **kwargs):
+            if kwargs["json"].get("tool_choice"):
+                return httpx.Response(200, json={"status": "completed", "output": [{
+                    "type": "function_call", "name": "get_test_drive_options",
+                    "call_id": "call-booking", "arguments": "{}",
+                }]})
             return httpx.Response(200, json=complete({"sections": ["Here is your next step."]}))
 
         with patch("backend.main.load_settings", return_value={
@@ -193,8 +198,10 @@ class FreshChatTests(unittest.TestCase):
                 with self.subTest(message=message):
                     reply = client.post("/chat", json={"message": message})
                     self.assertEqual(reply.status_code, 200)
-                    actions = [action for block in reply.json()["blocks"] for action in block.get("actions", [])]
-                    self.assertEqual(any(action.get("open_test_drive") for action in actions), expected)
+                    cards = [block for block in reply.json()["blocks"] if block.get("component") == "TestDriveRequest"]
+                    self.assertEqual(bool(cards), expected)
+                    if expected:
+                        self.assertTrue(cards[0]["props"]["records"][0]["models"])
 
     def test_financing_action_grounds_curator_in_same_offer_and_trim_as_card(self):
         import json

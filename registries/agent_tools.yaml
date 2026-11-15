@@ -31,6 +31,15 @@ result_schema:
   additionalProperties: true
 
 tools:
+  - name: get_test_drive_options
+    description: Start test-drive scheduling by retrieving vehicle choices and the calendar date range.
+    implementation: backend.appointments:get_test_drive_options
+    enabled: true
+    reads: [models.csv, trims.csv, assets.csv, coverage.csv, sources.csv]
+    input_schema:
+      type: object
+      additionalProperties: false
+      properties: {}
   - name: search_cars
     description: Find announced U.S. Mazda vehicles by model year, body style, drivetrain, and base MSRP.
     implementation: backend.catalog:Catalog.search_cars

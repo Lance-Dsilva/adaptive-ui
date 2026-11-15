@@ -1,12 +1,24 @@
 """Validate a demo test-drive selection without recording it."""
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .catalog import Catalog
 
 _TIMEZONE = ZoneInfo("America/Chicago")
+
+
+def get_test_drive_options(root: Path) -> dict:
+    catalog = Catalog(root / "data/mazda/us/2027")
+    models = catalog.search_cars(model_year=2027)
+    today = datetime.now(_TIMEZONE).date()
+    return {**models, "records": [{
+        "models": [{"id": row["model_id"], "name": row["name"], "year": row["model_year"]}
+                   for row in models["records"]],
+        "first_date": today.isoformat(),
+        "last_date": (today + timedelta(days=365)).isoformat(),
+    }]}
 
 
 def test_drive(root: Path, model_id: str, requested_date: date, requested_time: time) -> dict:

@@ -182,8 +182,11 @@ def create_app(
             return result
 
         user_history = [item.content for item in body.transcript if item.role == "user"] if body.transcript else body.history
+        booking = standard and test_drive_enabled and body.vehicle_action is None and requests_test_drive(message)
 
         async def contextual_curate(message: str, call_tool: CallTool) -> list[str]:
+            if booking:
+                await call_tool("get_test_drive_options", {}, "test-drive-options")
             return await curate(message, call_tool, user_history)
 
         async def contextual_present(sections, calls):
@@ -290,6 +293,17 @@ def create_app(
 
                 first_stage, second_stage = curate_vehicle_action, present_vehicle_action
 
+        if booking:
+            from .ui_registry import UIRegistry
+
+            async def present_test_drive(sections, calls):
+                source = next((item for item in calls if item.name == "get_test_drive_options"), None)
+                if sections and source:
+                    return {0: UIRegistry(project_root).render("render_test_drive", source, [0], sections[0])}
+                return {}
+
+            second_stage = present_test_drive
+
         try:
             async with asyncio.timeout(110):
                 result = await orchestrate(message, first_stage, second_stage, invoke_tool)
@@ -305,12 +319,6 @@ def create_app(
                 if not standard:
                     return result
                 response_body = decorate_response(result, message, user_history, candidates=candidates)
-                if test_drive_enabled and body.vehicle_action is None and requests_test_drive(message):
-                    response_body["blocks"].append({
-                        "id": "test-drive-demo", "type": "actions", "label": "Test drive",
-                        "actions": [{"id": "open-test-drive", "label": "Open test-drive demo",
-                                     "message": "Open the test-drive demo.", "open_test_drive": True}],
-                    })
                 if isinstance(body.vehicle_action, ComparisonAction) and any(
                     block.get("component") == "CarComparison" for block in response_body["blocks"]
                 ):

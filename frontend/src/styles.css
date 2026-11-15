@@ -314,8 +314,21 @@ svg { display: block; width: 24px; height: 24px; }
 }
 
 .request-fields { display: grid; gap: 14px; }
-.test-drive-panel { width: 100%; margin-block: 16px; }
-.back-to-chat { border: 0; background: transparent; color: var(--violet); min-height: 44px; }
+.test-drive-card { display: grid; gap: 12px; }
+.test-drive-calendar-header { display: flex; align-items: center; justify-content: space-between; }
+.test-drive-calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  text-align: center;
+  align-items: center;
+  gap: 3px;
+}
+.test-drive-calendar-days span { color: var(--muted); font-size: 12px; }
+.test-drive-calendar-days button { min-width: 0; padding-inline: 0; }
+.test-drive-calendar-days button[aria-pressed="true"] {
+  color: white;
+  background: var(--violet);
+}
 
 .response-answer { font-size: 17px; line-height: 24px; font-weight: 600; white-space: pre-wrap; }
 .response-body { font-size: 16px; line-height: 24px; white-space: pre-wrap; }
