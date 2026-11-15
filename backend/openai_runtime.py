@@ -474,8 +474,10 @@ class OpenAIRuntime:
             if intent == "comparison" else
             "First name the selected paint or interior material in one short sentence without commenting on image availability. "
             if intent == "color_preview" else
-            "First give a short, factual answer using the supplied published offers and their expiry status. "
-            "When offers exist, describe them as published financing information. "
+            "First give a short, factual answer in one sentence. For a request to show financing, "
+            "briefly introduce the published options and leave rates, terms, and eligibility to the card. "
+            "If asked a specific financing question, answer it first from the supplied offers and "
+            "expiry status. Never imply separate offers can be combined. "
             if intent == "financing" else "First give the shopper a useful answer in one short sentence. "
         )
         sections = await self._generate_sections(
