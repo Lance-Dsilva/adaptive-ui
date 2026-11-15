@@ -128,7 +128,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
                "extra": {"not_in_prose": True}}
         call = ToolResult("source-1", "search_cars", {"model_year": 2027}, raw)
         base = {"section_index": 1, "tool_name": "render_car_list",
-                "source_call_id": "source-1", "record_indices": [1]}
+                "source_call_id": "source-1", "record_indices": [1], "covers_section": True}
         requests = []
         proposals = [base, {**base, "section_index": 0, "source_call_id": "unknown"},
                      {**base, "section_index": 2, "record_indices": [3]},
@@ -159,7 +159,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
     async def test_model_selection_cannot_supply_generated_props(self):
         response = complete({"choices": [], "replacements": [{
             "section_index": 0, "tool_name": "render_car_list", "source_call_id": "source",
-            "record_indices": [0], "props": {"price": 1},
+            "record_indices": [0], "covers_section": True, "props": {"price": 1},
         }]})
         call = ToolResult("source", "search_cars", {}, {"records": [{"id": "a"}]})
         async with httpx.AsyncClient(transport=httpx.MockTransport(
@@ -285,9 +285,9 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         )
         proposals = [
             {"section_index": 1, "tool_name": "render_car_list",
-             "source_call_id": "search", "record_indices": [0]},
+             "source_call_id": "search", "record_indices": [0], "covers_section": True},
             {"section_index": 1, "tool_name": "render_car_details",
-             "source_call_id": "detail", "record_indices": [0]},
+             "source_call_id": "detail", "record_indices": [0], "covers_section": True},
         ]
         rendered = []
 
@@ -313,7 +313,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         raw = {"records": records, "metadata": {"untouched": [None, ""]}}
         proposals = {"choices": [], "replacements": [{
             "section_index": 1, "tool_name": "render_car_list",
-            "source_call_id": "source", "record_indices": [0, 1, 2],
+            "source_call_id": "source", "record_indices": [0, 1, 2], "covers_section": True,
         }]}
         responses = [complete({"sections": ["Here is the plug-in option.", "CX-90 Plug-in Hybrid", "Caveat"]}),
                      complete(proposals)]
@@ -351,7 +351,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         })
         proposal = {"choices": [], "replacements": [{
             "section_index": 1, "tool_name": "render_vehicle_gallery",
-            "source_call_id": "media", "record_indices": [0],
+            "source_call_id": "media", "record_indices": [0], "covers_section": False,
         }]}
         async with httpx.AsyncClient(transport=httpx.MockTransport(
             lambda request: httpx.Response(200, json=complete(proposal))

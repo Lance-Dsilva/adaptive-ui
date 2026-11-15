@@ -201,15 +201,17 @@ def create_app(
             sources = [call for call in calls if call.name != "search_cars"]
             if len(sections) in (2, 3) and sources and selection.mode in presentations:
                 source = sources[-1]
-                return {1: UIRegistry(project_root).render(
+                card = UIRegistry(project_root).render(
                     presentations[selection.mode], source,
                     list(range(len(source.result["records"]))), sections[1],
-                )}
+                )
+                return {1: {**card, "covers_section": True}}
             replacements = await DiscoveryPresentation(project_root).select(
                 sections, calls, record_filter=lambda records: filter_records(records, selection)
             )
-            if selection.mode == "comparison":
-                for block in replacements.values():
+            for block in replacements.values():
+                block["covers_section"] = True
+                if selection.mode == "comparison":
                     block["props"]["startComparison"] = True
             return replacements
 
@@ -284,9 +286,10 @@ def create_app(
                         all_details = await invoke_tool("get_car_details", {"model_id": action.model_id})
                         source.result["records"][0]["trims"] = all_details["records"][0]["trims"]
                         source.result["records"][0]["selected_trim_id"] = action.trim_id
-                    return {1: UIRegistry(project_root).render(
+                    card = UIRegistry(project_root).render(
                         ui_tool, source, list(range(len(source.result["records"]))), sections[1],
-                    )}
+                    )
+                    return {1: {**card, "covers_section": True}}
 
                 first_stage, second_stage = curate_vehicle_action, present_vehicle_action
 

@@ -31,7 +31,7 @@ The domain manifest enables only `search_cars`. The UI manifest enables only `re
 3. The function reads the CSV data and returns raw structured results. FastAPI retains the complete result of every tool call.
 4. Agent 1 curates the response. FastAPI hands Agent 2 both the curated response and the complete original tool results, with references connecting the answer to its source records.
 5. Agent 2 identifies sections that benefit from UI, maps source records into the corresponding UI functions, and calls them to obtain React code or presents available choices as buttons.
-6. FastAPI sends the full curated answer in order, followed by any matching UI. A response can contain multiple UI blocks or only text.
+6. FastAPI sends the lead answer and any other prose the selected UI does not fully cover, followed by the UI. Text represented by a card stays available as its fallback.
 
 ## Preserve tool data through the agent handoff
 
@@ -56,10 +56,6 @@ Use an ordered `blocks` array for the curated text and optional UI. Each UI bloc
       "text": "Here is a car matching your request."
     },
     {
-      "type": "text",
-      "text": "Example Car — model year 2027."
-    },
-    {
       "type": "ui",
       "component": "CarList",
       "code": "function CarList({ cars }) { return <ul>{cars.map(car => <li key={car.id}><img src={car.image_url} alt={car.name} /><span>{car.name}</span></li>)}</ul>; }",
@@ -79,7 +75,7 @@ Use an ordered `blocks` array for the curated text and optional UI. Each UI bloc
 }
 ```
 
-Agent 2 adds a card for the model named in the second paragraph. The image URL in the props is copied exactly from the retained source record. Raw tool results remain available to Agent 2 even when a UI function uses only some fields.
+Agent 2 presents the model facts as a card. The matching paragraph is kept in `fallback_text` and shown if the card fails to render. The image URL in the props is copied exactly from the retained source record.
 
 The JSON envelope and field names above are a proposed contract. Streaming JSON lines can carry the same ordered blocks if streaming is chosen later.
 

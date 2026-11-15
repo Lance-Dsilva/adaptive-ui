@@ -309,7 +309,9 @@ class FreshChatTests(unittest.TestCase):
         card = next(block for block in blocks if block.get("component") == "CarList")
         self.assertEqual(len(card["props"]["cars"]), 3)
         self.assertFalse(any(block.get("choice") for block in blocks))
-        self.assertIn("Which CX-90", blocks[1]["text"])
+        self.assertIn("Which CX-90", card["fallback_text"])
+        self.assertFalse(any("Which CX-90" in block.get("text", "") for block in blocks))
+        self.assertFalse(any("$29,990.00" in block.get("text", "") for block in blocks))
         self.assertGreater(blocks.index(card), max(index for index, block in enumerate(blocks) if block["type"] == "text"))
         self.assertEqual(len(requests), 1)
 

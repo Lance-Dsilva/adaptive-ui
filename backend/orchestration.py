@@ -46,7 +46,8 @@ async def orchestrate(
     Agent two receives those sections and an independent snapshot of each
     successful call, in invocation order. It proposes UI by zero-based section
     index. Each proposal must carry the original section as fallback_text for
-    validation. The full curated answer is retained in its original order.
+    validation. Only sections fully represented by a validated card are
+    omitted from the visible text. They remain available as card fallbacks.
     """
     calls: dict[str, ToolResult | None] = {}
 
@@ -76,6 +77,7 @@ async def orchestrate(
         proposed = {}
 
     supplements: dict[int, JSONObject] = {}
+    covered_sections: set[int] = set()
     if isinstance(proposed, Mapping):
         for index, result in proposed.items():
             if type(index) is not int or not 0 <= index < len(sections):
@@ -83,17 +85,24 @@ async def orchestrate(
             if _is_choice_result(result, sections[index]):
                 supplements[index] = {key: deepcopy(result[key]) for key in ("type", "choice", "label", "actions")}
                 continue
-            if not _is_ui_result(result, sections[index]):
+            if not isinstance(result, dict):
+                continue
+            covered = result.get("covers_section") is True
+            card = {key: value for key, value in result.items() if key != "covers_section"}
+            if not _is_ui_result(card, sections[index]):
                 continue
             try:
                 if validate_ui is not None:
-                    validate_ui(deepcopy(result))
+                    validate_ui(deepcopy(card))
             except Exception:
                 logger.warning("UI result validation failed for section %d", index)
                 continue
-            supplements[index] = {"type": "ui", **deepcopy(result)}
+            supplements[index] = {"type": "ui", **deepcopy(card)}
+            if covered and index != 0:
+                covered_sections.add(index)
 
-    blocks = [{"type": "text", "text": section} for section in sections]
+    blocks = [{"type": "text", "text": section} for index, section in enumerate(sections)
+              if index not in covered_sections]
     blocks.extend(supplements[index] for index in sorted(supplements))
     return {"blocks": blocks}
 

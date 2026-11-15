@@ -83,7 +83,7 @@ class DiscoveryTests(unittest.TestCase):
             source = ROOT / "frontend" / "src" / "CarList.jsx"
             self.assertEqual(listing["code"], source.read_text(encoding="utf-8"))
             self.assertEqual(len(listing["fallback_text"].splitlines()), 4)
-            self.assertEqual(answer[1]["text"], listing["fallback_text"])
+            self.assertFalse(any(block["text"] == listing["fallback_text"] for block in answer))
             self.assertIn("CX-5 — from $29,990.00", listing["fallback_text"])
 
             cars = {car["id"]: car for car in listing["props"]["cars"]}
