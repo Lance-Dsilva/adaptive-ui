@@ -137,10 +137,11 @@ def decorate_response(response, message, history, *, candidates=()):
         result.append({'id': 'result-actions', 'type': 'actions', 'actions': [
             {'id': 'clear-budget', 'label': 'Clear budget', 'message': without_budget(selection)},
         ]})
-    choices = cx90_choice_actions(message, selection, candidates) if not has_cards else None
+    has_choices = any(block.get("choice") is True for block in result)
+    choices = cx90_choice_actions(message, selection, candidates) if not has_cards and not has_choices else None
     if choices:
         result.append(choices)
-    if history and not has_cards and not choices and any(
+    if history and not has_cards and not choices and not has_choices and any(
         block['type'] == 'text' and re.search(
             r'^\s*(?:\[question\]\s+)?What matters most to you(?:\?|:)', block['text'], re.I | re.M
         )

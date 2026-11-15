@@ -175,6 +175,50 @@ class ResponseValidatorTests(unittest.TestCase):
 
 
 class FreshChatTests(unittest.TestCase):
+    def test_presenter_turns_cx5_trim_clarification_into_exact_vehicle_actions(self):
+        import httpx
+        from test_openai_runtime import complete, tool_response
+
+        model = "us-2027-cx5"
+        trims = [f"{model}-2-5-s-suv-awd-6at-2r", f"{model}-2-5-s-select-suv-awd-6at-2r"]
+        question = "Do you mean the base 2.5 S or the 2.5 S Select?"
+        options = [
+            {"label": label, "message": f"Show me the 2027 CX-5 {label}.", "trim_id": trim}
+            for label, trim in zip(("2.5 S", "2.5 S Select"), trims)
+        ]
+        replies = iter([
+            tool_response(), complete({"sections": [question]}),
+            complete({"replacements": [], "choices": [{"section_index": 0, "options": options}]}),
+            complete({"sections": ["Here is the selected CX-5.", "Vehicle details."]}),
+        ])
+        instructions = []
+
+        async def generate(client, url, **kwargs):
+            instructions.append(kwargs["json"]["instructions"])
+            return httpx.Response(200, json=next(replies))
+
+        with patch("backend.main.load_settings", return_value={
+            "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "fixture-model",
+        }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+            response = client.post("/chat", json={"message": "What about the basic one in the last card?"})
+            self.assertEqual(response.status_code, 200)
+            body = response.json()
+            self.assertEqual(validate_blocks(body), [])
+            self.assertEqual(body["blocks"][0]["text"], question)
+            group = body["blocks"][1]
+            self.assertTrue(group["choice"])
+            self.assertEqual([action["vehicle_action"]["trim_id"] for action in group["actions"]], trims)
+            action = group["actions"][0]
+            chosen = client.post("/chat", json={
+                "message": action["message"], "vehicle_action": action["vehicle_action"],
+            })
+            self.assertEqual(chosen.status_code, 200)
+            self.assertEqual(chosen.headers["Cache-Control"], "no-store")
+            card = next(block for block in chosen.json()["blocks"] if block["type"] == "ui")
+            self.assertEqual(card["component"], "VehicleDetails")
+            self.assertEqual(card["props"]["records"][0]["selected_trim_id"], trims[0])
+        self.assertIn("always present them as selectable UI", instructions[2])
+
     def test_repeated_greetings_and_catalog_queries_make_new_model_calls(self):
         import json
         import httpx

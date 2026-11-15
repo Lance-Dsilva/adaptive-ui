@@ -64,7 +64,7 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
       const actions = integratedContext ? block.actions.filter(action => action.id !== 'clear-budget') : block.actions;
       if (!actions.length) return null;
       return <div key={key} className="response-actions" role="group" aria-label={block.label || 'Suggested next steps'}>
-        {actions.slice(0, 2).map((action, actionIndex) => (
+        {actions.slice(0, block.choice === true ? 8 : 2).map((action, actionIndex) => (
           <button key={action.id || actionIndex} type="button"
             disabled={disabled || !onAction}
             onClick={disabled ? undefined : () => onAction?.(action)}>

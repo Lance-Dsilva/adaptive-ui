@@ -74,8 +74,9 @@ def validate_blocks(body):
             return ["Context must contain nonempty display-only strings"]
         if kind == "actions":
             actions = block.get("actions")
-            if not isinstance(actions, list) or not 1 <= len(actions) <= 2:
-                return ["Actions block must contain one or two actions"]
+            valid_count = range(2, 9) if block.get("choice") is True else range(1, 3)
+            if not isinstance(actions, list) or len(actions) not in valid_count:
+                return ["Actions block contains an unsupported number of actions"]
             for action in actions:
                 if not isinstance(action, dict) or not all(nonempty(action.get(key)) for key in ("id", "label", "message")):
                     return ["Action needs an ID, label and message"]

@@ -245,6 +245,10 @@ test('response actions preserve action payloads and allow at most two buttons', 
   const html = renderToStaticMarkup(<ResponseBlocks blocks={blocks} onAction={() => {}} disabled />);
   assert.equal((html.match(/disabled=""/g) || []).length, 2);
   assert.ok(!html.includes('Extra'));
+  const choices = renderToStaticMarkup(<ResponseBlocks blocks={[
+    {...blocks[0], choice: true},
+  ]} onAction={() => {}} />);
+  assert.ok(choices.includes('Extra'));
 });
 
 test('inactive replies retain their content and disable card and disclosure controls', () => {

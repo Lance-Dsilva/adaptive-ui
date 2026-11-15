@@ -76,9 +76,13 @@ async def orchestrate(
         proposed = {}
 
     replacements: dict[int, JSONObject] = {}
+    choices: dict[int, JSONObject] = {}
     if isinstance(proposed, Mapping):
         for index, result in proposed.items():
             if type(index) is not int or not 0 <= index < len(sections):
+                continue
+            if _is_choice_result(result, sections[index]):
+                choices[index] = {key: deepcopy(result[key]) for key in ("type", "choice", "label", "actions")}
                 continue
             if not _is_ui_result(result, sections[index]):
                 continue
@@ -90,12 +94,25 @@ async def orchestrate(
                 continue
             replacements[index] = {"type": "ui", **deepcopy(result)}
 
-    return {
-        "blocks": [
-            replacements.get(index, {"type": "text", "text": section})
-            for index, section in enumerate(sections)
-        ]
-    }
+    blocks = []
+    for index, section in enumerate(sections):
+        blocks.append(replacements.get(index, {"type": "text", "text": section}))
+        if index in choices:
+            blocks.append(choices[index])
+    return {"blocks": blocks}
+
+
+def _is_choice_result(result: object, fallback: str) -> bool:
+    return (
+        isinstance(result, dict) and result.get("type") == "actions"
+        and result.get("choice") is True and result.get("fallback_text") == fallback
+        and isinstance(result.get("label"), str)
+        and isinstance(result.get("actions"), list) and 2 <= len(result["actions"]) <= 8
+        and all(isinstance(action, dict) and all(
+            isinstance(action.get(key), str) and bool(action[key].strip())
+            for key in ("id", "label", "message")
+        ) for action in result["actions"])
+    )
 
 
 def _is_ui_result(result: object, fallback: str) -> bool:

@@ -137,7 +137,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
 
         def transport(request):
             requests.append(json.loads(request.content))
-            return httpx.Response(200, json=complete({"replacements": proposals}))
+            return httpx.Response(200, json=complete({"choices": [], "replacements": proposals}))
 
         rendered = []
         def renderer(name, source, indices, fallback):
@@ -157,7 +157,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(raw["extra"]["not_in_prose"])
 
     async def test_model_selection_cannot_supply_generated_props(self):
-        response = complete({"replacements": [{
+        response = complete({"choices": [], "replacements": [{
             "section_index": 0, "tool_name": "render_car_list", "source_call_id": "source",
             "record_indices": [0], "props": {"price": 1},
         }]})
@@ -295,7 +295,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
                     "fallback_text": fallback}
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(
-            lambda request: httpx.Response(200, json=complete({"replacements": proposals}))
+            lambda request: httpx.Response(200, json=complete({"choices": [], "replacements": proposals}))
         )) as client:
             runtime = OpenAIRuntime(ROOT, fast_catalog=False, api_key="fixture-only", client=client, render_ui=renderer)
             result = await runtime.select(("before", "Preferred trim details", "after"), calls)
@@ -309,7 +309,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
             {"model_id": "cx90-phev", "model_family": "cx90", "powertrain": "plug_in_hybrid"},
         ]
         raw = {"records": records, "metadata": {"untouched": [None, ""]}}
-        proposals = {"replacements": [{
+        proposals = {"choices": [], "replacements": [{
             "section_index": 1, "tool_name": "render_car_list",
             "source_call_id": "source", "record_indices": [0, 1, 2],
         }]}
@@ -347,7 +347,7 @@ class OpenAIRuntimeTests(unittest.IsolatedAsyncioTestCase):
         call = ToolResult("media", "get_vehicle_media", {}, {
             "records": [{"model_id": "cx5", "colors": [{"name": "Black leather"}], "assets": []}]
         })
-        proposal = {"replacements": [{
+        proposal = {"choices": [], "replacements": [{
             "section_index": 1, "tool_name": "render_vehicle_gallery",
             "source_call_id": "media", "record_indices": [0],
         }]}

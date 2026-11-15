@@ -63,12 +63,53 @@ SELECTION_SCHEMA = {
                 "required": ["section_index", "tool_name", "source_call_id", "record_indices"],
                 "additionalProperties": False,
             },
-        }
+        },
+        "choices": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "section_index": {"type": "integer", "minimum": 0},
+                    "options": {
+                        "type": "array", "minItems": 2, "maxItems": 8,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "label": {"type": "string", "minLength": 1, "maxLength": 90},
+                                "message": {"type": "string", "minLength": 1, "maxLength": 400},
+                                "trim_id": {"type": ["string", "null"]},
+                            },
+                            "required": ["label", "message", "trim_id"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["section_index", "options"],
+                "additionalProperties": False,
+            },
+        },
     },
-    "required": ["replacements"],
+    "required": ["replacements", "choices"],
     "additionalProperties": False,
 }
 RenderUI = Callable[[str, ToolResult, list[int], str], dict[str, Any]]
+
+_CHOICE_INTENTS = {
+    "details": "details", "colors": "colors", "gallery": "photos",
+    "visualization": "rotation", "financing": "financing",
+}
+
+
+def _choice_question(sections):
+    text = "\n".join(sections)
+    return (
+        text.casefold().count("[choice]") > 1
+        or bool(re.search(r"\b(?:choose|pick|select) (?:one|which|a|an|between)\b", text, re.I))
+        or ("?" in text and (
+            bool(re.search(r"\bor\b|\bwhich (?:one|option|model|trim|color|powertrain)\b|\bwould you prefer\b", text, re.I))
+            or len(re.findall(r"^\s*(?:[-*•]|\d+[.)])\s+\S", text, re.M)) > 1
+        ))
+    )
 
 
 class OpenAIRuntimeError(RuntimeError):
@@ -382,7 +423,9 @@ class OpenAIRuntime:
             f"Today is {today} in America/Chicago. Use this date for offer as_of unless the user specifies another date. "
             "You are Austin Mazda's vehicle research assistant. Interpret the user's latest "
             "request using previous user messages as context. Ask a clarification if references "
-            "are ambiguous. Call the provided local catalog tools for factual vehicle answers. "
+            "are ambiguous. When asking the shopper to pick, ask one question and state the "
+            "distinct options once so the presenter can make them selectable. "
+            "Call the provided local catalog tools for factual vehicle answers. "
             "First use search_cars to discover exact model_id and trim_id values before calling tools that require them. Never guess IDs. Copy the complete ID string verbatim, including every suffix, from the tool result. Never shorten, reconstruct, or print internal identifiers in customer-facing text. "
             "Use the fewest tools needed for the specific question. For discovery, search_cars already supplies trims and images; do not fetch media, financing, or details unless requested. For a detail or named-trim question, resolve the ID with search_cars then call get_car_details with that exact model and trim. For photos, colors or rotation use get_vehicle_media. For named comparison use compare_cars with exact trim IDs, clarifying ambiguous powertrains. For offers use get_financing_offers. Keep the answer concise. All business facts must come from tool results. Preserve exact model years, prices, "
             "applicability and missing-data warnings. Distinguish mild hybrids "
@@ -619,15 +662,16 @@ class OpenAIRuntime:
 
     async def select(self, sections: tuple[str, ...], calls: tuple[ToolResult, ...]) -> dict:
         """Select registered UI tools by validated source references, never model-made props."""
-        if not calls or not self._ui or self._render_ui is None:
+        has_choice = _choice_question(sections)
+        if (not calls and not has_choice) or not self._ui or self._render_ui is None:
             return {}
         source_calls = {call.call_id: call for call in calls}
         if len(source_calls) != len(calls):
             raise OpenAIRuntimeError("The presentation sources contain duplicate call IDs.")
         context = self._presentation_context.get()
-        if context and context[0].body_style == "suv" and _shopping_prompt(context[1]):
+        if not has_choice and context and context[0].body_style == "suv" and _shopping_prompt(context[1]):
             return {}
-        if self._catalog_context.get():
+        if self._catalog_context.get() and not has_choice:
             # Successful catalog results have an intro and facts with an optional caveat.
             # Clarifications/errors have one section and must never become a card.
             if context is None or len(sections) not in (2, 3):
@@ -673,6 +717,18 @@ class OpenAIRuntime:
             for record in call.result.get("records", [])
         }
         instructions = (
+            "Use a matching registered UI function whenever it fully represents a section. "
+            "Prefer UI for every supported section, leaving narrative and unsupported sections as prose. "
+            "When the assistant asks the shopper to choose from discrete alternatives, always "
+            "present them as selectable UI. Use an existing picker only if it covers exactly "
+            "the alternatives and choosing an item continues the original task. "
+            "Otherwise add one entry to choices at the question section with two to eight distinct "
+            "options, short labels, and self-contained shopper messages that preserve the original "
+            "task and apply only that option. Never invent alternatives or add choices to a "
+            "rhetorical or open-ended question. A choice starts a new chat turn. "
+            "For a catalog trim use its exact retained trim_id, even for a base trim. Use null "
+            "for preferences and other free-text choices. Never infer a trim ID. "
+            "Do not duplicate a picker with a choice group. "
             "When get_car_details succeeds for a model, use render_car_details for its detail section. "
             "Do not replace a specific-trim detail section with a broad search_cars result or CarList. "
             "Only choose record indices listed in eligible_record_indices for that source call. "
@@ -688,8 +744,8 @@ class OpenAIRuntime:
             "zero-based section_index, source_call_id, and zero-based record_indices into that "
             "call's result.records. Select only tools from available_ui_tools and records that "
             "actually support the section. Each section can be replaced once. Never generate "
-            "React, props, facts, URLs, or altered prose. Return an empty replacements array "
-            "when no suitable UI tool or source records exist."
+            "React, props, facts, URLs, or altered prose. Return an empty array for either field "
+            "when nothing qualifies for that field."
         )
         response = await self._request({
             "instructions": instructions,
@@ -697,6 +753,7 @@ class OpenAIRuntime:
                 "role": "user",
                 "content": _json({
                     "sections": list(sections),
+                    "shopper_request": context[1] if context else "",
                     "tool_results": [asdict(call) for call in calls],
                     "eligible_record_indices": eligible_indices,
                     "gallery_requested": bool(gallery_requested),
@@ -709,9 +766,9 @@ class OpenAIRuntime:
             }],
             "text": self._format("presentation_selection", SELECTION_SCHEMA),
         })
-        selected = _output_json(response, SELECTION_SCHEMA)["replacements"]
+        selection = _output_json(response, SELECTION_SCHEMA)
         replacements = {}
-        for item in selected:
+        for item in selection["replacements"]:
             index = int(item["section_index"])
             source = source_calls.get(item["source_call_id"])
             indices = [int(value) for value in item["record_indices"]]
@@ -752,4 +809,47 @@ class OpenAIRuntime:
                 continue
             if rendered:
                 replacements[index] = rendered
+        if has_choice:
+            self._add_choices(replacements, selection["choices"], sections, calls, eligible_indices, context)
         return replacements
+
+    @staticmethod
+    def _add_choices(replacements, groups, sections, calls, eligible_indices, context):
+        trims = {}
+        for call in calls:
+            if call.name not in {"search_cars", "get_car_details", "get_vehicle_media"}:
+                continue
+            for index in eligible_indices[call.call_id]:
+                record = call.result["records"][index]
+                if record.get("model_id"):
+                    trims.update({trim["trim_id"]: record["model_id"]
+                                  for trim in record.get("trims", []) if trim.get("trim_id")})
+        mode = context[0].mode if context else "details"
+        for group in groups:
+            index = group["section_index"]
+            if index >= len(sections) or index in replacements:
+                continue
+            options = []
+            for option in group["options"]:
+                title, prompt = option["label"].strip(), option["message"].strip()
+                trim_id = option["trim_id"]
+                if not title or not prompt or re.search(r"https?://", title + prompt, re.I):
+                    break
+                action = {"id": f"choice-{index}-{len(options)}", "label": title, "message": prompt}
+                if trim_id is not None:
+                    if trim_id not in trims:
+                        break
+                    if mode != "comparison":
+                        action["vehicle_action"] = {
+                            "intent": _CHOICE_INTENTS.get(mode, "details"),
+                            "model_id": trims[trim_id], "trim_id": trim_id,
+                        }
+                options.append(action)
+            if (len(options) == len(group["options"]) and all(
+                len({option[field].casefold() for option in options}) == len(options)
+                for field in ("label", "message")
+            )):
+                replacements[index] = {
+                    "type": "actions", "choice": True, "label": "Choose an option",
+                    "actions": options, "fallback_text": sections[index],
+                }

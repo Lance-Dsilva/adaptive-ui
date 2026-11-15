@@ -195,7 +195,14 @@ async def _vehicle_response(text: str, selection: Selection, record: dict, call_
             if re.search(r"\b" + trim_label[0] + r"\b", _text(trim["name"]))
             and ("plus" in trim_label[0] or "plus" not in _text(trim["name"]))
         ]
-        if len(matches) != 1:
+        if len(matches) > 1:
+            configurations = [
+                f"{trim['name']} ({trim['body_style']}, {trim['drivetrain']}, "
+                f"{trim['seating_capacity'].replace('|', ' or ')} seats)"
+                for trim in matches
+            ]
+            return [f"Which {model_name} configuration do you mean? " + " or ".join(configurations) + "?"]
+        if not matches:
             return ["Please specify the exact trim and seating configuration so I can use the correct price and equipment."]
         arguments["trim_id"] = matches[0]["trim_id"]
     if selection.mode == "financing":

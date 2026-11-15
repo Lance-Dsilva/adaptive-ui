@@ -158,7 +158,7 @@ function App() {
               <Icon name="spark" className="spark" />
               {turn.blocks ? <ResponseBlocks blocks={turn.blocks} compare={turn.compare}
                 disabled={index !== turns.length - 1 || pending || requestPending}
-                onAction={action => send(action.message, action.compare === true, null, null, turn.id)} /> : turn.error ? (
+                onAction={action => send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id)} /> : turn.error ? (
                 <div className="chat-error">
                   <p>{turn.error === 'timeout'
                     ? 'This request is taking longer than expected. Try again.'
