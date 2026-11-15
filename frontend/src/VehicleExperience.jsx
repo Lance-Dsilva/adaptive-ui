@@ -386,7 +386,23 @@ function ComparisonFacts({ rows, records }) {
 
 }
 
-export function CarComparison({ records = [] }) {
+const comparisonMetrics = [
+  ['Horsepower', /\b(?:horsepower|hp)\b/i, /horsepower/i],
+  ['Torque', /\btorque\b/i, /torque/i],
+  ['Fuel economy', /\b(?:mpg|mpge|fuel economy|fuel efficiency|gas mileage)\b/i, /mpg|fuel economy/i],
+  ['Electric range', /\b(?:electric|ev) range\b/i, /electric range/i],
+  ['Battery capacity', /\b(?:battery capacity|battery size|kwh)\b/i, /battery capacity/i],
+  ['Cargo space', /\b(?:cargo|trunk|luggage)\b/i, /cargo volume|^cargo/i],
+  ['Legroom', /\blegroom\b/i, /legroom/i],
+  ['Towing', /\b(?:tow|towing)\b/i, /tow/i],
+  ['Seating', /\b(?:seating|seats|seat count|passenger capacity|third row)\b/i, /^seats \/ rows/i],
+  ['Drivetrain', /\b(?:drivetrain|awd|fwd|rwd)\b/i, /^drivetrain$/i],
+  ['Transmission', /\btransmission\b/i, /^transmission$/i],
+  ['Performance', /\bperformance\b/i, /horsepower|torque|tow/i],
+  ['Price', /\b(?:price|pricing|msrp|destination|cheaper|cost)\b/i, /msrp|destination/i],
+];
+
+export function CarComparison({ records = [], question = '' }) {
   const [edits, setEdits] = useState({});
   const picks = records.map(record => ({
     car: { year: record.model?.model_year, name: record.model?.name || record.name },
@@ -405,16 +421,15 @@ export function CarComparison({ records = [] }) {
     ['Powertrain', records.map(record => record.model?.powertrain?.replaceAll('_', ' '))],
   ];
   const overviewFields = [
-    ['Horsepower · regular 87 AKI', ['horsepower_87_aki', 'HORSEPOWER WITH 87 OCTANE UNLEADED FUEL', 'ENGINE HORSEPOWER WITH REGULAR UNLEADED FUEL']],
+    ['Horsepower · regular 87 AKI', ['horsepower_87_aki', 'HORSEPOWER WITH 87 OCTANE UNLEADED FUEL', 'ENGINE HORSEPOWER WITH REGULAR UNLEADED FUEL', 'system_horsepower_87_octane_spec_deck']],
     ['Horsepower · premium 91 AKI', ['horsepower_91_aki']],
     ['Horsepower · premium 93 AKI', ['horsepower_93_aki']],
-    ['Horsepower · other rating', ['HORSEPOWER', 'ENGINE HORSEPOWER WITH PREMIUM UNLEADED FUEL']],
+    ['Horsepower · premium fuel (octane unspecified)', ['ENGINE HORSEPOWER WITH PREMIUM UNLEADED FUEL']],
     ['Torque · regular 87 AKI (lb-ft)', ['torque_lb_ft_87_aki', 'TORQUE WITH 87 OCTANE UNLEADED FUEL', 'ENGINE TORQUE WITH REGULAR UNLEADED FUEL']],
     ['Torque · premium 91 AKI (lb-ft)', ['torque_lb_ft_91_aki']],
     ['Torque · premium 93 AKI (lb-ft)', ['torque_lb_ft_93_aki']],
     ['City MPG', ['mpg_city']], ['Highway MPG', ['mpg_highway']], ['Combined MPG', ['mpg_combined', 'estimated_combined_mpg_gasoline']],
     ['Combined MPGe · electric and gasoline', ['estimated_combined_mpge_electric_and_gasoline']],
-    ['System horsepower · 87 octane (alternate rating)', ['system_horsepower_87_octane_spec_deck']],
     ['System horsepower · 93 octane (alternate rating)', ['system_horsepower_93_octane_spec_deck']],
     ['Cargo · rows upright (SAE cu ft)', ['cargo_volume_sae_rows_upright_cubic_feet']],
     ['Cargo · third row folded (SAE cu ft)', ['cargo_volume_sae_third_row_folded_cubic_feet']],
@@ -438,19 +453,43 @@ export function CarComparison({ records = [] }) {
       return pair ? [{...combined, value:pair[label === 'City MPG' ? 1 : 2]}] : [];
     });
     const destination = /premium|other rating|alternate rating|seats down|third row folded|second \/ third folded|seats up \/ third folded/.test(label) ? additionalFacts : summary;
-    if (matches.some(items => items.length)) destination.push([label, matches.map(items => items.length ? items.map((item, index) =>
-      <span key={index} className="spec-value">{specValue(item)}{specificationNote(item.applicability) && <small>{specificationNote(item.applicability)}</small>}</span>) : null)]);
+    if (matches.some(items => items.length)) destination.push([label, matches.map((items, recordIndex) => items.length ? items.map((item, index) =>
+      <span key={index} className="spec-value">
+        {specValue(item)}{/horsepower/i.test(label) && /^\d+(?:\.\d+)?$/.test(item.value) ? ' hp' : ''}
+        {/horsepower/i.test(label) && records[recordIndex].model?.powertrain === 'plug_in_hybrid' &&
+          <small>Combined system output</small>}
+        {specificationNote(item.applicability) && <small>{specificationNote(item.applicability)}</small>}
+      </span>) : null)]);
   }
+  const fields = [...new Set(records.flatMap(record => record.specifications.map(item => item.field)))];
+  const normalize = value => value.toLowerCase().replaceAll(/[^a-z0-9]+/g, ' ').trim();
+  const request = ` ${normalize(question)} `;
+  const exactFields = fields.filter(field => normalize(field).length >= 4 &&
+    request.includes(` ${normalize(field)} `));
+  const metrics = comparisonMetrics.filter(([, match]) => match.test(question));
+  const focus = metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
+  const overview = [...summary, ...additionalFacts];
+  function comparisonRowsForFields(selectedFields) {
+    return selectedFields.map(field => [factLabel(field), records.map(record =>
+      record.specifications.find(item => item.field === field)?.value)]);
+  }
+  const focusedRows = metrics.length ? metrics.flatMap(([label, , match]) => {
+    const rows = overview.filter(([name]) => match.test(name));
+    if (rows.length) return rows;
+    const matchingFields = fields.filter(field => match.test(factLabel(field)));
+    return matchingFields.length ? comparisonRowsForFields(matchingFields) : [[label, records.map(() => null)]];
+  }) : comparisonRowsForFields(exactFields);
   const formatComparisonPrice = value => {
     const amount = number(value);
     return Number.isInteger(amount) ? wholeDollarPrice.format(amount) : price(value);
   };
   return <section className="vehicle-comparison">
     <header className="comparison-result-heading">
-      <h3>Your comparison</h3>
+      <h3>{focus.length ? `${focus.join(' & ')} comparison` : 'Your comparison'}</h3>
       <button type="button" className="comparison-edit"
         onClick={() => askShoppingQuestion('Show all 2027 Mazda models.', true)}>Change cars</button>
     </header>
+    {focusedRows.length > 0 && <ComparisonFacts rows={focusedRows} records={records} />}
     <div className="comparison-models">
       {records.map((record, index) => <div key={record.model?.name + index}>
         <ComparisonPhoto key={record.trim_id} record={record} showCaption />
@@ -474,15 +513,15 @@ export function CarComparison({ records = [] }) {
       </div>)}
     </div>
     {changed && <button className="comparison-edit compare-revised" type="button"
-      onClick={() => askToCompare(picks)}>Compare cars</button>}
-    <dl className="comparison-costs" aria-label="Comparison pricing">
+      onClick={() => askToCompare(picks, focus.join(' and ').toLowerCase())}>Compare cars</button>}
+    {!focus.length && <dl className="comparison-costs" aria-label="Comparison pricing">
       {[['Base MSRP', 'msrp_usd'], ['Destination', 'destination_usd']].map(([label, field]) =>
         <div key={field}><dt>{label}</dt>{records.map((record, index) =>
           <dd key={record.trim_id || index}>
             <span className="comparison-visually-hidden">{record.model?.name || record.name}: </span>
             {formatComparisonPrice(record[field])}
           </dd>)}</div>)}
-    </dl>
+    </dl>}
     <details className="comparison-group comparison-all-specs"><ReplySummary>Features &amp; specs</ReplySummary>
     <ComparisonFacts rows={summary.slice(2)} records={records} />
     {additionalFacts.length > 0 && <details className="comparison-group"><ReplySummary>More performance and space</ReplySummary><ComparisonFacts rows={additionalFacts} records={records} /></details>}

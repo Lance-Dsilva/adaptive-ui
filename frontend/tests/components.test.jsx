@@ -342,6 +342,20 @@ test('comparison uses semantic headers and retains full specification values', (
   assert.ok(!html.includes('https://example.com/spec.pdf'));
 });
 
+test('specific comparison puts the requested metric above the vehicle cards', () => {
+  const records = [
+    { trim_id: 'first', name: '2.5 S', model: { name: 'CX-5' }, msrp_usd: '29990',
+      specifications: [{ category: 'Performance', field: 'horsepower_87_aki', value: '187' }] },
+    { trim_id: 'second', name: 'Preferred', model: { name: 'CX-90 PHEV', powertrain: 'plug_in_hybrid' },
+      msrp_usd: '50695', specifications: [{ category: 'Performance', field: 'horsepower_91_aki', value: '323' }] },
+  ];
+  const html = renderToStaticMarkup(<components.CarComparison records={records} question="Compare horsepower" />);
+  const featured = html.slice(0, html.indexOf('class="comparison-models"'));
+  assert.ok(featured.includes('Horsepower comparison') && featured.includes('187 hp') && featured.includes('323 hp'));
+  assert.ok(featured.includes('91 AKI') && featured.includes('Combined system output'));
+  assert.ok(!html.includes('Comparison pricing'));
+});
+
 test('explicit prior-year references are permitted only for the linked model and clearly labeled', () => {
   const asset = {asset_kind:'image',url:'https://example.com/reference.jpg',model_id:'',source_model_year:'2026',
     applicability:'model_reference',reference_model_id:'phev',product_trim_code:'prior-year-code',caption:'2026 PHEV reference; 2027 appearance and equipment may differ'};

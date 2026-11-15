@@ -29,13 +29,13 @@ export function askShoppingQuestion(message, compare = false) {
   window.dispatchEvent(new CustomEvent('shopping-prompt', { detail: { message, compare } }));
 }
 
-export function askToCompare(picks) {
+export function askToCompare(picks, focus = '') {
   const descriptions = picks.map(({ car, trim }) => [
     car.year, car.name, trim.name, trim.body_style, trim.drivetrain,
     trim.seating_capacity && `${trim.seating_capacity.replaceAll('|', ' or ')} seats`,
   ].filter(Boolean).join(' '));
   window.dispatchEvent(new CustomEvent('shopping-prompt', { detail: {
-    message: `Compare the ${descriptions.join(' with the ')}.`,
-    vehicleAction: { intent: 'comparison', trim_ids: picks.map(({ trim }) => trim.trim_id) },
+    message: `Compare the ${descriptions.join(' with the ')}${focus ? ` on ${focus}` : ''}.`,
+    vehicleAction: { intent: 'comparison', trim_ids: picks.map(({ trim }) => trim.trim_id), focus: focus || undefined },
   } }));
 }

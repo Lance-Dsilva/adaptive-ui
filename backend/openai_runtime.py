@@ -444,7 +444,7 @@ class OpenAIRuntime:
         self._web_context.set(blocks)
         return [block["text"] for block in blocks]
 
-    async def vehicle_action_reply(self, prompt, intent, records, selected_color):
+    async def vehicle_action_reply(self, prompt, intent, records, selected_color, *, focus=None):
         facts = {
             "view": intent,
             "records_available": bool(records),
@@ -461,6 +461,13 @@ class OpenAIRuntime:
                 "drivetrain": record["drivetrain"],
                 "seats": record["seating_capacity"].split("|"),
             } for record in records]
+            if focus:
+                facts["comparison_focus"] = focus
+                for configuration, record in zip(facts["configurations"], records):
+                    configuration["specifications"] = [
+                        [item["field"], item["value"], item.get("applicability", "")]
+                        for item in record.get("specifications", [])
+                    ]
         if intent == "financing":
             facts["offers"] = [{
                 key: record.get(key) for key in (
@@ -470,7 +477,9 @@ class OpenAIRuntime:
                 )
             } for record in records]
         lead = (
-            "First give one useful, factual difference between the exact configurations. "
+            "First answer the requested comparison focus using published specifications if supplied. "
+            "Preserve units and conditions such as fuel grade. For a general comparison, give "
+            "one useful, factual difference between the exact configurations. "
             if intent == "comparison" else
             "First name the selected paint or interior material in one short sentence without commenting on image availability. "
             if intent == "color_preview" else

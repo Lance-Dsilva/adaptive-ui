@@ -55,6 +55,7 @@ class VehicleAction(BaseModel):
 
 class ComparisonAction(BaseModel):
     intent: Literal["comparison"]
+    focus: str | None = Field(default=None, max_length=400)
     trim_ids: tuple[Annotated[str, Field(min_length=1, max_length=160)],
                     Annotated[str, Field(min_length=1, max_length=160)]]
 
@@ -269,7 +270,8 @@ def create_app(
                     if ((color_id or intent == "color_preview") and
                             (intent != "color_preview" or selected_color is None)):
                         raise HTTPException(status_code=422, detail="Invalid color selection.")
-                    return await runtime.vehicle_action_reply(prompt, intent, records, selected_color)
+                    focus = action.focus if isinstance(action, ComparisonAction) else None
+                    return await runtime.vehicle_action_reply(prompt, intent, records, selected_color, focus=focus)
 
                 async def present_vehicle_action(sections, calls):
                     source = calls[0]
@@ -319,6 +321,11 @@ def create_app(
                 if not standard:
                     return result
                 response_body = decorate_response(result, message, user_history, candidates=candidates)
+                for block in response_body["blocks"]:
+                    if block.get("component") == "CarComparison":
+                        block["props"]["question"] = (
+                            (body.vehicle_action.focus or "") if isinstance(body.vehicle_action, ComparisonAction) else message
+                        )
                 if isinstance(body.vehicle_action, ComparisonAction) and any(
                     block.get("component") == "CarComparison" for block in response_body["blocks"]
                 ):
