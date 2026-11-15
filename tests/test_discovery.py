@@ -164,3 +164,35 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(response["blocks"], [
             {"type": "text", "text": text} for text in ("before", "original", "after")
         ])
+
+    def test_duplicate_financing_cards_preserve_direct_answer_and_distinct_offers(self):
+        sections = [
+            "Here is what the catalog reports for the CX-90.",
+            "1.9% APR for up to 36 months.",
+            "Eligibility depends on lender approval.",
+            "A separate lease is listed.",
+            "I couldn't verify an offer specific to your ZIP code.",
+        ]
+        apr = {"offer_id": "apr", "apr_percent": "1.9"}
+        loyalty = {"offer_id": "loyalty", "cash_amount_usd": "1000"}
+        lease = {"offer_id": "lease", "term_months_max": "36"}
+
+        async def curate(message, call_tool):
+            return sections
+
+        async def select(text, calls):
+            return {
+                index: {
+                    "component": "FinancingOffers", "code": "fixture",
+                    "props": {"records": offers}, "fallback_text": text[index],
+                    "covers_section": index != 4,
+                }
+                for index, offers in enumerate(([apr, loyalty], [apr, loyalty], [loyalty, apr], [lease], [apr, loyalty]))
+            }
+
+        with TestClient(create_app(curate, select)) as client:
+            blocks = client.post("/chat", json={"message": "fixture"}).json()["blocks"]
+        self.assertEqual([block["text"] for block in blocks if block["type"] == "text"], [sections[0], sections[4]])
+        cards = [block for block in blocks if block["type"] == "ui"]
+        self.assertEqual([card["props"]["records"] for card in cards], [[apr, loyalty], [lease]])
+        self.assertEqual(cards[0]["fallback_text"], "\n\n".join(sections[1:3]))

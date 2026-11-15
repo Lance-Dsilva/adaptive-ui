@@ -1,6 +1,7 @@
 """Coordinate the two agent stages and preserve source data for presentation."""
 
 import logging
+from json import dumps
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass
@@ -78,6 +79,8 @@ async def orchestrate(
 
     supplements: dict[int, JSONObject] = {}
     covered_sections: set[int] = set()
+    card_indices: dict[tuple[str, str], int] = {}
+    card_fallbacks: dict[int, list[int]] = {}
     if isinstance(proposed, Mapping):
         for index, result in proposed.items():
             if type(index) is not int or not 0 <= index < len(sections):
@@ -94,17 +97,33 @@ async def orchestrate(
             try:
                 if validate_ui is not None:
                     validate_ui(deepcopy(card))
+                key = _card_key(card)
             except Exception:
                 logger.warning("UI result validation failed for section %d", index)
                 continue
-            supplements[index] = {"type": "ui", **deepcopy(card)}
+            card_index = card_indices.setdefault(key, index)
+            if card_index == index:
+                supplements[index] = {"type": "ui", **deepcopy(card)}
             if covered and index != 0:
                 covered_sections.add(index)
+                card_fallbacks.setdefault(card_index, []).append(index)
+
+    for index, hidden in card_fallbacks.items():
+        supplements[index]["fallback_text"] = "\n\n".join(dict.fromkeys(sections[i] for i in sorted(hidden)))
 
     blocks = [{"type": "text", "text": section} for index, section in enumerate(sections)
               if index not in covered_sections]
     blocks.extend(supplements[index] for index in sorted(supplements))
     return {"blocks": blocks}
+
+
+def _card_key(card: JSONObject) -> tuple[str, str]:
+    component = card["component"]
+    props = card["props"]
+    if component == "FinancingOffers" and isinstance(props.get("records"), list):
+        # Offer rows can be selected in a different order for the same card.
+        props = {**props, "records": sorted(dumps(record, sort_keys=True, allow_nan=False) for record in props["records"])}
+    return component, dumps(props, sort_keys=True, allow_nan=False)
 
 
 def _is_choice_result(result: object, fallback: str) -> bool:

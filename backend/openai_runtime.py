@@ -904,6 +904,8 @@ class OpenAIRuntime:
             "The shopper will see the direct answer followed by matching cards. Set "
             "covers_section to true only for a section whose entire content is visible in the card. "
             "Use false if the section contains any unique explanation, answer, or qualification. "
+            "Select each distinct card only once per reply. One financing card already displays "
+            "all of its selected offers, their conditions and the payment estimator. "
             "When the assistant asks the shopper to choose from discrete alternatives, always "
             "present them as selectable UI. Use an existing picker only if it covers exactly "
             "the alternatives and choosing an item continues the original task. "
