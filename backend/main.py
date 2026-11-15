@@ -338,8 +338,10 @@ def create_app(
             raise
         except OpenAIRuntimeError as error:
             logger.warning("Chat model failure (%s): %s", error.status_code, error)
-            raise HTTPException(status_code=error.status_code, detail=str(error),
-                                headers={"Cache-Control": "no-store"}) from None
+            headers = {"Cache-Control": "no-store"}
+            if error.reason:
+                headers["X-Chat-Error"] = error.reason
+            raise HTTPException(status_code=error.status_code, detail=str(error), headers=headers) from None
         except TimeoutError:
             logger.warning("Chat request exceeded the server deadline")
             raise HTTPException(status_code=504, detail="The assistant request timed out.",

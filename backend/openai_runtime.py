@@ -184,9 +184,38 @@ def _choice_question(sections):
 class OpenAIRuntimeError(RuntimeError):
     """A safe failure message suitable for application handling."""
 
-    def __init__(self, message: str, *, status_code: int = 503):
+    def __init__(self, message: str, *, status_code: int = 503, reason: str | None = None):
         super().__init__(message)
         self.status_code = status_code
+        self.reason = reason
+
+
+_QUOTA_ERRORS = (
+    "credit_balance_exhausted", "project_spend_limit_exceeded",
+    "organization_spend_limit_exceeded", "organization_usage_limit_exceeded",
+    "billing_not_active", "usage_limit_exceeded", "insufficient_quota",
+)
+_RATE_ERRORS = ("rate_limit_exceeded", "slow_down", "rate_limit_error")
+
+
+def _openai_limit_error(response: httpx.Response) -> OpenAIRuntimeError:
+    try:
+        body = response.json()
+    except ValueError:
+        body = None
+    error = body.get("error") if isinstance(body, dict) else None
+    reason = "unclassified_429"
+    if isinstance(error, dict):
+        for field in ("code", "type"):
+            value = error.get(field)
+            if isinstance(value, str) and value in _QUOTA_ERRORS + _RATE_ERRORS:
+                reason = value
+                break
+    logger.warning("OpenAI request limit reason: %s", reason)
+    if reason in _QUOTA_ERRORS:
+        return OpenAIRuntimeError("The assistant is temporarily unavailable.",
+                                  status_code=429, reason="service_unavailable")
+    return OpenAIRuntimeError("The assistant service is at its request limit.", status_code=429)
 
 
 def _json(value: Any) -> str:
@@ -375,7 +404,7 @@ class OpenAIRuntime:
             if response.status_code in (401, 403):
                 raise OpenAIRuntimeError("The assistant API credentials could not be accepted.")
             if response.status_code == 429:
-                raise OpenAIRuntimeError("The assistant service is at its request limit.", status_code=429)
+                raise _openai_limit_error(response)
             if response.is_error:
                 logger.warning("OpenAI rejected the request with HTTP %s", response.status_code)
                 raise OpenAIRuntimeError("The assistant service could not complete this request.")

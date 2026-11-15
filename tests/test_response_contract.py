@@ -344,6 +344,32 @@ class FreshChatTests(unittest.TestCase):
                 self.assertEqual(response.status_code, expected)
                 self.assertEqual(response.headers["Cache-Control"], "no-store")
 
+    def test_chat_classifies_openai_limits_without_exposing_provider_details(self):
+        import httpx
+
+        cases = [
+            ({"code": "credit_balance_exhausted", "type": "insufficient_quota"}, "credit_balance_exhausted", True),
+            ({"code": "unknown", "type": "insufficient_quota"}, "insufficient_quota", True),
+            ({"code": "project_spend_limit_exceeded"}, "project_spend_limit_exceeded", True),
+            ({"code": "rate_limit_exceeded"}, "rate_limit_exceeded", False),
+            ({"code": ["fixture-private"]}, "unclassified_429", False),
+        ]
+
+        for upstream, reason, quota in cases:
+            async def generate(client, url, **kwargs):
+                return httpx.Response(429, json={"error": {**upstream, "message": "fixture-private"}})
+
+            with self.subTest(reason=reason), patch("backend.main.load_settings", return_value={
+                "OPENAI_API_KEY": "fixture-only", "OPENAI_MODEL": "fixture-model",
+            }), patch("httpx.AsyncClient.post", new=generate), TestClient(create_app()) as client:
+                with self.assertLogs("backend.openai_runtime", level="WARNING") as logs:
+                    response = client.post("/chat", json={"message": "Show me Mazda SUVs."})
+                self.assertEqual(response.status_code, 429)
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+                self.assertEqual(response.headers.get("X-Chat-Error"), "service_unavailable" if quota else None)
+                self.assertTrue(any(line.endswith(": " + reason) for line in logs.output))
+                self.assertNotIn("fixture-private", response.text + " ".join(logs.output))
+
     def test_suv_results_keep_the_list_when_generated_copy_asks_for_a_powertrain(self):
         import json
         import httpx

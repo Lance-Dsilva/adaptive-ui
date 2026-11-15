@@ -9,6 +9,7 @@ const COMPARE = 'Can you show me what cars are available for 2027?';
 const CHAT_ERRORS = {
   timeout: 'The assistant took too long to respond. Try again.',
   busy: 'The assistant is busy. Try again in a moment.',
+  unavailable: 'The assistant is temporarily unavailable.',
   selection: 'That request couldn’t be accepted. Try asking again in the chat box.',
   connection: 'Couldn’t reach the assistant. Check your connection and try again.',
   service: 'The assistant couldn’t complete this request. Try again.',
@@ -137,7 +138,8 @@ function App() {
       });
       receivedResponse = true;
       if (!response.ok) {
-        const error = { 408: 'timeout', 504: 'timeout', 429: 'busy', 422: 'selection' }[response.status];
+        const error = response.headers.get('X-Chat-Error') === 'service_unavailable' ? 'unavailable'
+          : { 408: 'timeout', 504: 'timeout', 429: 'busy', 422: 'selection' }[response.status];
         update({ error: error ?? 'service' });
         return;
       }
@@ -202,8 +204,8 @@ function App() {
                 onAction={action => send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id)} /> : turn.error ? (
                 <div className="chat-error">
                   <p>{CHAT_ERRORS[turn.error]}</p>
-                  <button type="button" disabled={index !== turns.length - 1 || pending}
-                    onClick={() => send(turn.message, turn.compare, turn.id, turn.action, turn.contextTurnId ?? null)}>Try again</button>
+                  {turn.error !== 'unavailable' && <button type="button" disabled={index !== turns.length - 1 || pending}
+                    onClick={() => send(turn.message, turn.compare, turn.id, turn.action, turn.contextTurnId ?? null)}>Try again</button>}
                 </div>
               ) : <p role="status">Working on your request…</p>}
             </div>
