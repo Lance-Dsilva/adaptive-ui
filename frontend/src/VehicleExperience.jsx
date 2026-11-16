@@ -1,7 +1,7 @@
 import { ReplySummary } from './ReplyControls.jsx';
 import { useState } from 'react';
 import { browseRequest, compareVehicles, openVehicle, runCatalogAction } from './catalogActions.js';
-import { isEngineComparison, isFullFeatureComparison } from './vehiclePrompts.js';
+import { fuelEconomyRequest, isEngineComparison, isFullFeatureComparison } from './vehiclePrompts.js';
 import VehicleVisualizer, { verifiedSequences } from './VehicleVisualization.jsx';
 import { VehicleEngineSpecs } from './VehicleEngineSpecs.jsx';
 import { isHttpsUrl as https } from './isHttpsUrl.js';
@@ -392,7 +392,7 @@ const engineRow = /^(?:Engine (?:type|displacement)|Recommended fuel)|horsepower
 const comparisonMetrics = [
   ['Horsepower', /\b(?:horsepower|hp)\b/i, /horsepower/i],
   ['Torque', /\btorque\b/i, /torque/i],
-  ['Fuel economy', /\b(?:mpg|mpge|fuel economy|fuel efficiency|gas mileage)\b/i, /mpg|fuel economy/i],
+  ['Fuel economy', fuelEconomyRequest, /mpg|fuel economy/i],
   ['Electric range', /\b(?:electric|ev) range\b/i, /electric range/i],
   ['Battery capacity', /\b(?:battery capacity|battery size|kwh)\b/i, /battery capacity/i],
   ['Cargo space', /\b(?:cargo|trunk|luggage)\b/i, /cargo volume|^cargo/i],
@@ -410,6 +410,7 @@ export function CarComparison({ records = [], question = '' }) {
   const [featureGroup, setFeatureGroup] = useState('');
   const allFeatures = isFullFeatureComparison(question);
   const engineFocus = !allFeatures && isEngineComparison(question);
+  const includeMileage = fuelEconomyRequest.test(question);
   const picks = records.map(record => ({
     car: { year: record.model?.model_year, name: record.model?.name || record.name },
     trim: record.configuration_choices?.find(trim => trim.trim_id === edits[record.trim_id]) || record,
@@ -481,14 +482,14 @@ export function CarComparison({ records = [], question = '' }) {
   const exactFields = fields.filter(field => normalize(field).length >= 4 &&
     request.includes(` ${normalize(field)} `));
   const metrics = comparisonMetrics.filter(([, match]) => match.test(question));
-  const focus = allFeatures ? [] : engineFocus ? ['Engine'] : metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
+  const focus = allFeatures ? [] : engineFocus ? (includeMileage ? ['Engine', 'fuel economy'] : ['Engine']) : metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
   const overview = [...summary, ...additionalFacts];
-  const requestedFocus = allFeatures ? 'all features' : engineFocus ? 'engine specs' : focus.join(' and ').toLowerCase();
+  const requestedFocus = allFeatures ? 'all features' : engineFocus ? (includeMileage ? 'engine specs and fuel economy' : 'engine specs') : focus.join(' and ').toLowerCase();
   function comparisonRowsForFields(selectedFields) {
     return selectedFields.map(field => [factLabel(field), records.map(record =>
       record.specifications.find(item => item.field === field)?.value)]);
   }
-  const focusedRows = engineFocus ? overview.filter(([label]) => engineRow.test(label))
+  const focusedRows = engineFocus ? overview.filter(([label]) => engineRow.test(label) || (includeMileage && /\bMPGe?\b/i.test(label)))
     : metrics.length ? metrics.flatMap(([label, , match]) => {
     const rows = overview.filter(([name]) => match.test(name));
     if (rows.length) return rows;

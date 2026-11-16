@@ -611,7 +611,19 @@ class FreshChatTests(unittest.TestCase):
                 self.assertEqual(blocks[0]["text"], f"Fresh comparison {count}")
                 card = next(block for block in blocks if block.get("component") == "CarComparison")
                 self.assertEqual([item["trim_id"] for item in card["props"]["records"]], trim_ids)
+            payload["message"] = "Can you compare all engine details like mileage etc"
+            focus = "engine specs and fuel economy"
+            payload["vehicle_action"]["focus"] = focus
+            response = client.post("/chat", json=payload)
+            self.assertEqual(response.status_code, 200)
+            blocks = response.json()["blocks"]
+            card = next(block for block in blocks if block.get("component") == "CarComparison")
+            self.assertEqual(card["props"]["question"], focus)
+            self.assertEqual([item["trim_id"] for item in card["props"]["records"]], trim_ids)
+            self.assertEqual(calls[-1]["catalog"]["comparison_focus"], focus)
+            self.assertTrue(all(item["specifications"] for item in calls[-1]["catalog"]["configurations"]))
+            self.assertEqual([block["text"] for block in blocks if block["type"] == "text"], ["Fresh comparison 3"])
             for invalid in (trim_ids[:1], [trim_ids[0]] * 2, [trim_ids[0], "unknown"]):
                 payload["vehicle_action"]["trim_ids"] = invalid
                 self.assertEqual(client.post("/chat", json=payload).status_code, 422)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)

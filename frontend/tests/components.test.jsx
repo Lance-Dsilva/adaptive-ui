@@ -408,6 +408,35 @@ test('engine specs follow-up keeps the exact trims and puts engine data first', 
   assert.ok(!html.includes('Comparison pricing'));
 });
 
+test('natural engine and mileage follow-up compares published MPG for the selected trims', () => {
+  const specs = entries => entries.map(([field, value]) => ({ category: 'specification', field, value }));
+  const records = [
+    { trim_id: 'mazda3-sedan', name: '2.5 S', model: { name: 'Mazda3' },
+      specifications: specs([['engine_displacement_l', '2.5'], ['horsepower_87_aki', '186'],
+        ['mpg_city', '27'], ['mpg_highway', '36'], ['mpg_combined', '30']]) },
+    { trim_id: 'cx5-suv', name: '2.5 S', model: { name: 'CX-5' },
+      specifications: specs([['DISPLACEMENT (CC)', '2488'], ['HORSEPOWER WITH 87 OCTANE UNLEADED FUEL', '187 hp'],
+        ['AWD, AUTOMATIC TRANSMISSION (MPG, CITY/HWY)', '24 / 30']]) },
+  ];
+  const question = 'Can you compare all engine details like mileage etc';
+  const block = { type: 'ui', component: 'CarComparison', props: { records, question } };
+  const action = comparisonFollowup(question, [block]);
+  assert.deepEqual(action, { intent: 'comparison', trim_ids: ['mazda3-sedan', 'cx5-suv'],
+    focus: 'engine specs and fuel economy' });
+  assert.equal(comparisonFollowup(question + ' for the CX-90 and CX-5', [block]), null);
+  assert.equal(comparisonFollowup('Compare mileage', [block]).focus, 'fuel economy');
+  for (const focus of [question, action.focus]) {
+    const html = renderToStaticMarkup(<ResponseBlocks blocks={[{ ...block, props: { records, question: focus } }]} />);
+    const featured = html.slice(0, html.indexOf('class="comparison-models"'));
+    assert.match(featured, /Engine &amp; fuel economy comparison/);
+    assert.match(featured, /City MPG.*?>27<.*?>24</);
+    assert.match(featured, /Highway MPG.*?>36<.*?>30</);
+    assert.match(featured, /Combined MPG.*?>30<.*?>Not published</);
+    assert.ok(featured.includes('186 hp') && featured.includes('187 hp'));
+    assert.ok(!html.includes('Comparison pricing'));
+  }
+});
+
 test('specific comparison puts the requested metric above the vehicle cards', () => {
   const records = [
     { trim_id: 'first', name: '2.5 S', model: { name: 'CX-5' }, msrp_usd: '29990',
