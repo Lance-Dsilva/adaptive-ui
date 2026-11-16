@@ -83,7 +83,7 @@ The JSON envelope and field names above are a proposed contract. Streaming JSON 
 
 The mobile web app includes the welcome screen, in-chat discovery, published trim details, price and hybrid filters, and a model comparison using starting MSRP, powertrain, and drivetrain.
 
-FastAPI serves the built app and the chat endpoint. The deterministic discovery adapter handles year-based discovery prompts and the SUV suggestion. The presentation adapter returns the checked-in React source and validated props. The browser renders the bundled `CarList` registered for that component name and uses the supplied text if rendering fails. Vehicle photo URLs come from the catalog and may require network access in the browser. The app shows a placeholder when an applicable image is missing or fails to load.
+FastAPI serves the built app and accepts typed messages at `POST /chat`. Catalog buttons send structured JSON to `POST /catalog/actions`, such as `{"intent":"browse","filters":{"body_style":"suv"}}` or `{"intent":"details","model_id":"us-2027-cx5"}`. That endpoint validates each action and renders the catalog card directly from the registered tools. The presentation adapter returns the checked-in React source and validated props. The browser renders the bundled `CarList` registered for that component name and uses the supplied text if rendering fails. Vehicle photo URLs come from the catalog and may require network access in the browser. The app shows a placeholder when an applicable image is missing or fails to load.
 
 Build the web app from cached npm dependencies:
 

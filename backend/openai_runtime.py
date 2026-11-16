@@ -145,10 +145,9 @@ SELECTION_SCHEMA = {
                             "type": "object",
                             "properties": {
                                 "label": {"type": "string", "minLength": 1, "maxLength": 90},
-                                "message": {"type": "string", "minLength": 1, "maxLength": 400},
-                                "trim_id": {"type": ["string", "null"]},
+                                "trim_id": {"type": "string"},
                             },
-                            "required": ["label", "message", "trim_id"],
+                            "required": ["label", "trim_id"],
                             "additionalProperties": False,
                         },
                     },
@@ -637,12 +636,8 @@ class OpenAIRuntime:
                 matches = list(dict.fromkeys(re.findall(pattern, message.casefold()))) if names else []
                 if 2 <= len(matches) <= 8 and all(len(trims_by_name[name]) == 1 for name in matches):
                     trims = [trims_by_name[name][0] for name in matches]
-                    view = {"gallery": "photos", "visualization": "a 360° view"}.get(
-                        intent.mode, intent.mode if intent.mode != "discovery" else "details"
-                    )
                     self._trim_choice_context.set([
-                        {"label": trim["name"], "trim_id": trim["trim_id"],
-                         "message": f"Show me {view} for the {intent.year} {record['name']} {trim['name']}."}
+                        {"label": trim["name"], "trim_id": trim["trim_id"]}
                         for trim in trims
                     ])
                     return await self._generate_sections(
@@ -998,15 +993,10 @@ class OpenAIRuntime:
             "Use false if the section contains any unique explanation, answer, or qualification. "
             "Select each distinct card only once per reply. One financing card already displays "
             "all of its selected offers, their conditions and the payment estimator. "
-            "When the assistant asks the shopper to choose from discrete alternatives, always "
-            "present them as selectable UI. Use an existing picker only if it covers exactly "
-            "the alternatives and choosing an item continues the original task. "
-            "Otherwise add one entry to choices at the question section with two to eight distinct "
-            "options, short labels, and self-contained shopper messages that preserve the original "
-            "task and apply only that option. Never invent alternatives or add choices to a "
-            "rhetorical or open-ended question. A choice starts a new chat turn. "
-            "For a catalog trim use its exact retained trim_id, even for a base trim. Use null "
-            "for preferences and other free-text choices. Never infer a trim ID. "
+            "When the assistant asks the shopper to choose a catalog trim, use selectable UI "
+            "if the exact alternatives are available. Otherwise retain the question as text. "
+            "For trim choices supply short labels and their exact retained trim_ids, even for "
+            "a base trim. Never infer trim IDs. "
             "Do not duplicate a picker with a choice group. "
             "When get_car_details succeeds for a model, use render_car_details for its detail section. "
             "Do not replace a specific-trim detail section with a broad search_cars result or CarList. "
@@ -1113,24 +1103,20 @@ class OpenAIRuntime:
                 continue
             options = []
             for option in group["options"]:
-                title, prompt = option["label"].strip(), option["message"].strip()
+                title = option["label"].strip()
                 trim_id = option["trim_id"]
-                if not title or not prompt or re.search(r"https?://", title + prompt, re.I):
+                if not title or re.search(r"https?://", title, re.I) or trim_id not in trims or mode == "comparison":
                     break
-                action = {"id": f"choice-{index}-{len(options)}", "label": title, "message": prompt}
-                if trim_id is not None:
-                    if trim_id not in trims:
-                        break
-                    if mode != "comparison":
-                        action["vehicle_action"] = {
-                            "intent": _CHOICE_INTENTS.get(mode, "details"),
-                            "model_id": trims[trim_id], "trim_id": trim_id,
-                        }
-                options.append(action)
-            if (len(options) == len(group["options"]) and all(
-                len({option[field].casefold() for option in options}) == len(options)
-                for field in ("label", "message")
-            )):
+                options.append({
+                    "id": f"choice-{index}-{len(options)}", "label": title,
+                    "request": {
+                        "intent": _CHOICE_INTENTS.get(mode, "details"),
+                        "model_id": trims[trim_id], "trim_id": trim_id,
+                    },
+                })
+            if (len(options) == len(group["options"])
+                    and len({option["label"].casefold() for option in options}) == len(options)
+                    and len({option["request"]["trim_id"] for option in options}) == len(options)):
                 replacements[index] = {
                     "type": "actions", "choice": True, "label": "Choose an option",
                     "actions": options, "fallback_text": sections[index],

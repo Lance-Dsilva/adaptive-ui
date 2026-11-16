@@ -1,5 +1,6 @@
 """Application-owned semantic response blocks, independent of model typography."""
 import re
+from dataclasses import asdict
 from decimal import Decimal
 from copy import deepcopy
 
@@ -41,8 +42,8 @@ def greeting_response(message):
         {'id': 'greeting-answer', 'type': 'text', 'role': 'answer', 'text': 'Hi! What are you looking for in your next Mazda?'},
         {'id': 'greeting-body', 'type': 'text', 'role': 'body', 'text': 'Explore published 2027 U.S. models, trims, and starting prices.'},
         {'id': 'greeting-actions', 'type': 'actions', 'actions': [
-            {'id': 'explore-suvs', 'label': 'Explore SUVs', 'message': 'Show me Mazda SUVs.'},
-            {'id': 'compare-models', 'label': 'Compare models', 'message': 'Show all 2027 Mazda models.', 'compare': True},
+            {'id': 'explore-suvs', 'label': 'Explore SUVs', 'request': {'intent': 'browse', 'filters': {'body_style': 'suv'}}},
+            {'id': 'compare-models', 'label': 'Compare models', 'request': {'intent': 'browse', 'compare': True}},
         ]},
         {'id': 'greeting-catalog', 'type': 'disclosure', 'title': 'About this catalog',
          'text': 'Covers researched 2027 U.S. Mazda3, CX-5, and CX-90 models. Check with the dealership for current inventory.'},
@@ -67,17 +68,9 @@ def context_items(selection):
     return items
 
 
-def without_budget(selection):
-    # Self-contained query binds this operation to its original result, even if
-    # the shopper has made another request since that result was displayed.
-    models = ' and '.join(
-        _NAMES.get(model, model) + (' ' + _POWER[selection.model_powertrains[model]] if model in selection.model_powertrains else '')
-        for model in selection.models
-    )
-    parts = ['Show me', str(selection.year), 'Mazda', models]
-    parts += [selection.drivetrain or '', _POWER.get(selection.powertrain, '').lower(),
-              {'suv': 'SUVs', 'sedan': 'sedans', 'hatchback': 'hatchbacks'}.get(selection.body_style, 'models')]
-    return ' '.join(part for part in parts if part) + '.'
+def catalog_filters(selection):
+    return {key: value for key, value in asdict(selection).items()
+            if key != "mode" and value is not None}
 
 
 def cx90_choice_actions(message, selection, candidates):
@@ -95,15 +88,38 @@ def cx90_choice_actions(message, selection, candidates):
     }
     if not {"mild_hybrid", "plug_in_hybrid"} <= powers:
         return None
-    end = matches[0].end()
+    focus = ""
+    if selection.mode == "comparison":
+        if re.search(r"\b(?:all|every|full|complete) (?:features?|specs?|specifications?|equipment)\b", message, re.I):
+            focus = "all features"
+        elif re.search(r"\bengine (?:specs?|specifications?)\b", message, re.I):
+            focus = "engine specs"
+        else:
+            focus = " and ".join(
+                metric for metric in ("horsepower", "torque", "fuel economy", "electric range", "battery capacity",
+                                      "cargo", "legroom", "towing", "seating", "drivetrain", "transmission", "price")
+                if re.search(rf"\b{metric}\b", message, re.I)
+            )
+
+    def action(powertrain, label):
+        if selection.mode == "comparison":
+            request = {"intent": "browse", "compare": True, "focus": focus, "filters": {
+                **catalog_filters(selection),
+                "model_powertrains": {**selection.model_powertrains, "cx90": powertrain},
+            }}
+        else:
+            record = next(record for record in candidates
+                          if record["model_family"] == "cx90" and record["powertrain"] == powertrain)
+            request = {"intent": {
+                "gallery": "photos", "visualization": "rotation", "colors": "colors",
+                "financing": "financing",
+            }.get(selection.mode, "details"), "model_id": record["model_id"]}
+        return {"id": f"cx90-{powertrain}", "label": label, "request": request}
+
     return {
         "id": "cx90-powertrain-choices", "type": "actions", "label": "Choose a CX-90 powertrain",
-        "actions": [
-            {"id": "cx90-mild-hybrid", "label": "Inline 6 Turbo (mild hybrid)",
-             "message": message[:end] + " mild hybrid" + message[end:]},
-            {"id": "cx90-plug-in-hybrid", "label": "Plug-in Hybrid",
-             "message": message[:end] + " plug-in hybrid" + message[end:]},
-        ],
+        "actions": [action("mild_hybrid", "Inline 6 Turbo (mild hybrid)"),
+                    action("plug_in_hybrid", "Plug-in Hybrid")],
     }
 
 
@@ -129,13 +145,15 @@ def decorate_response(response, message, history, *, candidates=()):
         else:
             block['role'] = 'card'
             if block['type'] == 'ui':
+                if block.get('component') == 'CarList':
+                    block['props']['filters'] = catalog_filters(selection)
                 block['fallback_text'] = _customer_text(block['fallback_text']) or 'Vehicle information could not be displayed.'
         if (block['type'] == 'ui' and not any(b['type'] == 'context' for b in result)) or empty:
             result.append({'id': 'effective-context', 'type': 'context', 'items': context_items(selection)})
         result.append(block)
     if (has_cards or empty) and selection.budget is not None and selection.mode == 'discovery':
         result.append({'id': 'result-actions', 'type': 'actions', 'actions': [
-            {'id': 'clear-budget', 'label': 'Clear budget', 'message': without_budget(selection)},
+            {'id': 'clear-budget', 'label': 'Clear budget', 'request': {'intent': 'browse', 'filters': {**catalog_filters(selection), 'budget': None}}},
         ]})
     has_choices = any(block.get("choice") is True for block in result)
     choices = cx90_choice_actions(message, selection, candidates) if not has_cards and not has_choices else None
@@ -151,9 +169,9 @@ def decorate_response(response, message, history, *, candidates=()):
         if prior.body_style == 'suv':
             result.append({'id': 'shopping-priorities', 'type': 'actions', 'actions': [
                 {'id': 'lower-price', 'label': 'Lower price',
-                 'message': 'Which of those Mazda SUVs has the lowest starting price?'},
+                 'request': {'intent': 'browse', 'filters': catalog_filters(prior), 'priority': 'price'}},
                 {'id': 'more-seats', 'label': 'More seats',
-                 'message': 'Which of those Mazda SUVs offers more seats?'},
+                 'request': {'intent': 'browse', 'filters': catalog_filters(prior), 'priority': 'seats'}},
             ]})
     return {'blocks': result or [{'id': 'answer', 'type': 'text', 'role': 'answer',
                                   'text': 'What would you like to know about the vehicle?'}]}

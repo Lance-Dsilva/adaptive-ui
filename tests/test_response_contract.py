@@ -82,8 +82,9 @@ class ResponseContractTests(unittest.TestCase):
         self.assertTrue('plug' in context or 'phev' in context)
         actions = [action for block in blocks if block['type'] == 'actions' for action in block['actions']]
         clear = next(action for action in actions if 'budget' in action['label'].lower())
-        transcript += [{'role': 'user', 'content': message}, {'role': 'assistant', 'content': 'No matches.'}]
-        recovered = self.chat(clear['message'], transcript)
+        response = self.client.post('/catalog/actions', json=clear['request'])
+        self.assertEqual(response.status_code, 200, response.text)
+        recovered = response.json()['blocks']
         cars = [car for block in recovered if block['type'] == 'ui' for car in block['props'].get('cars', [])]
         self.assertEqual([car['id'] for car in cars], ['us-2027-cx90-phev'])
         self.assertTrue(all(trim['msrp'] > 35000 for car in cars for trim in car['trims']))
@@ -91,8 +92,6 @@ class ResponseContractTests(unittest.TestCase):
         self.assertNotIn('35,000', new_context)
         self.assertIn('suv', new_context)
         self.assertIn('awd', new_context)
-        # Self-contained action also works with no prior transcript.
-        self.assertEqual(self.chat(clear['message']), recovered)
 
     def test_discovery_with_msrp_suffix_remains_discovery(self):
         for configured in (False, True):
@@ -128,7 +127,7 @@ class ResponseContractTests(unittest.TestCase):
                 self.assertIn('SUV', context)
                 actions = [action for block in blocks if block['type'] == 'actions' for action in block['actions']]
                 clear = next(action for action in actions if 'budget' in action['label'].lower())
-                recovered = self.chat(clear['message'])
+                recovered = self.client.post('/catalog/actions', json=clear['request']).json()['blocks']
                 self.assertEqual([car['id'] for block in recovered if block['type'] == 'ui' for car in block['props'].get('cars', [])], ['us-2027-cx90-phev'])
 
     def test_fractional_budget_is_not_rounded_to_eligible_price(self):
@@ -153,7 +152,7 @@ class ResponseValidatorTests(unittest.TestCase):
     def test_additive_blocks_reject_malformed_content(self):
         examples = [
             {'type': 'context', 'id': 'ctx', 'items': ['SUV', 'AWD']},
-            {'type': 'actions', 'id': 'act', 'actions': [{'id': 'one', 'label': 'View SUVs', 'message': 'Show SUVs', 'compare': False}]},
+            {'type': 'actions', 'id': 'act', 'actions': [{'id': 'one', 'label': 'View SUVs', 'request': {'intent': 'browse', 'filters': {'body_style': 'suv'}}}]},
             {'type': 'disclosure', 'id': 'note', 'title': 'Coverage', 'text': '2027 research snapshot'},
         ]
         self.assertEqual(validate_blocks({'blocks': examples}), [])
@@ -430,13 +429,12 @@ class FreshChatTests(unittest.TestCase):
         trims = [f"{model}-2-5-s-suv-awd-6at-2r", f"{model}-2-5-s-select-suv-awd-6at-2r"]
         question = "Do you mean the base 2.5 S or the 2.5 S Select?"
         options = [
-            {"label": label, "message": f"Show me the 2027 CX-5 {label}.", "trim_id": trim}
+            {"label": label, "trim_id": trim}
             for label, trim in zip(("2.5 S", "2.5 S Select"), trims)
         ]
         replies = iter([
             tool_response(), complete({"sections": [question]}),
             complete({"replacements": [], "choices": [{"section_index": 0, "options": options}]}),
-            complete({"sections": ["Here is the selected CX-5.", "Vehicle details."]}),
         ])
         instructions = []
 
@@ -454,17 +452,16 @@ class FreshChatTests(unittest.TestCase):
             self.assertEqual(body["blocks"][0]["text"], question)
             group = body["blocks"][1]
             self.assertTrue(group["choice"])
-            self.assertEqual([action["vehicle_action"]["trim_id"] for action in group["actions"]], trims)
+            self.assertEqual([action["request"]["trim_id"] for action in group["actions"]], trims)
             action = group["actions"][0]
-            chosen = client.post("/chat", json={
-                "message": action["message"], "vehicle_action": action["vehicle_action"],
-            })
+            chosen = client.post("/catalog/actions", json=action["request"])
             self.assertEqual(chosen.status_code, 200)
             self.assertEqual(chosen.headers["Cache-Control"], "no-store")
             card = next(block for block in chosen.json()["blocks"] if block["type"] == "ui")
             self.assertEqual(card["component"], "VehicleDetails")
             self.assertEqual(card["props"]["records"][0]["selected_trim_id"], trims[0])
-        self.assertIn("always present them as selectable UI", instructions[2])
+        self.assertIn("use selectable UI", instructions[2])
+        self.assertEqual(len(instructions), 3)
 
     def test_repeated_greetings_and_catalog_queries_make_new_model_calls(self):
         import json
@@ -574,15 +571,13 @@ class FreshChatTests(unittest.TestCase):
             self.assertEqual([action["label"] for action in group["actions"]],
                              ["Inline 6 Turbo (mild hybrid)", "Plug-in Hybrid"])
             for action, model in zip(group["actions"], ["us-2027-cx90-mhev", "us-2027-cx90-phev"]):
-                followup = client.post("/chat", json={"message": action["message"]})
+                followup = client.post("/catalog/actions", json=action["request"])
                 self.assertEqual(followup.status_code, 200)
                 card = next(block for block in followup.json()["blocks"] if block["type"] == "ui")
                 self.assertEqual(card["component"], "ColorOptions")
                 self.assertEqual(card["props"]["records"][0]["model_id"], model)
                 self.assertFalse(any(block["type"] == "actions" for block in followup.json()["blocks"]))
-        self.assertEqual(prompts, [
-            "Show me CX-90 colors.", "Show me CX-90 mild hybrid colors.", "Show me CX-90 plug-in hybrid colors.",
-        ])
+        self.assertEqual(prompts, ["Show me CX-90 colors."])
 
     def test_confirmed_comparison_uses_exact_trims_and_fresh_model_calls(self):
         import json

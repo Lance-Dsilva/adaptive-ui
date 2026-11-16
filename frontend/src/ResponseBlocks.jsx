@@ -35,6 +35,18 @@ export function previousTurnsFor(turns, currentId, contextTurnId = null) {
   ).slice(-20);
 }
 
+export function turnContext(turn) {
+  if (turn.request?.intent === 'browse') {
+    const filters = turn.blocks.find(block => block.type === 'context')?.items;
+    return filters?.length ? filters.join(' · ') : turn.message;
+  }
+  if (turn.request?.model_id) {
+    const vehicle = turn.blocks.find(block => block.type === 'ui')?.fallback_text;
+    if (vehicle) return [vehicle, turn.request.intent.replaceAll('_', ' ')].join(' · ');
+  }
+  return turn.message;
+}
+
 export function responseText(blocks) {
   const shownText = new Set(blocks.filter(block => block.type === 'text').map(block => block.text));
   return blocks.map(block => {
@@ -72,7 +84,8 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
       </ul>;
     }
     if (block.type === 'actions' && Array.isArray(block.actions)) {
-      const actions = integratedContext ? block.actions.filter(action => action.id !== 'clear-budget') : block.actions;
+      const actions = block.actions.filter(action => typeof action.request?.intent === 'string' &&
+        (!integratedContext || action.id !== 'clear-budget'));
       if (!actions.length) return null;
       return <div key={key} className="response-actions" role="group" aria-label={block.label || 'Suggested next steps'}>
         {actions.slice(0, block.choice === true ? 8 : 2).map((action, actionIndex) => (
@@ -94,7 +107,8 @@ export function ResponseBlocks({ blocks, compare = false, onAction, disabled = f
       return <BlockBoundary key={key} fallback={fallback}>
         <fieldset className="reply-controls" disabled={disabled}>
           <CarList cars={block.props.cars} startComparison={compare || block.props.startComparison}
-            contextItems={index === catalogIndex ? integratedContext?.items : undefined} />
+            contextItems={index === catalogIndex ? integratedContext?.items : undefined}
+            catalogFilters={block.props.filters} comparisonFocus={block.props.comparisonFocus} />
         </fieldset>
       </BlockBoundary>;
     }

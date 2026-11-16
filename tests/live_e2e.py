@@ -78,10 +78,13 @@ def validate_blocks(body):
             if not isinstance(actions, list) or len(actions) not in valid_count:
                 return ["Actions block contains an unsupported number of actions"]
             for action in actions:
-                if not isinstance(action, dict) or not all(nonempty(action.get(key)) for key in ("id", "label", "message")):
-                    return ["Action needs an ID, label and message"]
-                if action["id"] in action_ids or ("compare" in action and type(action["compare"]) is not bool):
-                    return ["Action IDs must be unique and compare must be boolean"]
+                if not isinstance(action, dict) or not all(nonempty(action.get(key)) for key in ("id", "label")):
+                    return ["Action needs an ID and label"]
+                request = action.get("request")
+                if not isinstance(request, dict) or not nonempty(request.get("intent")) or "message" in action:
+                    return ["Action needs a structured request"]
+                if action["id"] in action_ids:
+                    return ["Action IDs must be unique"]
                 action_ids.add(action["id"])
         if kind == "disclosure" and not (nonempty(block.get("title")) and nonempty(block.get("text"))):
             return ["Disclosure needs a title and text"]

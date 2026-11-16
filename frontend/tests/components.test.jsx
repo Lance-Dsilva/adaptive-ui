@@ -181,7 +181,7 @@ test('photo uses the filtered caption for both visible text and alt without muta
   assert.equal(asset.caption, 'exterior/rhodium-white/front.png');
 });
 
-import { ResponseBlocks, previousTurnsFor, responseText } from '../src/ResponseBlocks.jsx';
+import { ResponseBlocks, previousTurnsFor, responseText, turnContext } from '../src/ResponseBlocks.jsx';
 
 test('discovery merges year and body scope into the compact toolbar and shows reset only for applied filters', () => {
   const cars = [{
@@ -261,9 +261,10 @@ test('response roles determine typography independently of position and retain a
 
 test('response actions preserve action payloads and allow at most two buttons', () => {
   const actions = [
-    { id: 'explore', label: 'Explore SUVs', message: 'Show me Mazda SUVs.' },
-    { id: 'compare', label: 'Compare models', message: 'Compare Mazda models', compare: true },
-    { id: 'extra', label: 'Extra', message: 'Extra' },
+    { id: 'explore', label: 'Explore SUVs', request: { intent: 'browse', filters: { body_style: 'suv' } } },
+    { id: 'compare', label: 'Compare models', request: { intent: 'browse', compare: true } },
+    { id: 'extra', label: 'Extra', request: { intent: 'test_drive' } },
+    { id: 'legacy', label: 'Legacy text prompt', message: 'Show all Mazda models' },
   ];
   let received;
   const blocks = [{ type: 'actions', id: 'next', actions }];
@@ -279,6 +280,7 @@ test('response actions preserve action payloads and allow at most two buttons', 
     {...blocks[0], choice: true},
   ]} onAction={() => {}} />);
   assert.ok(choices.includes('Extra'));
+  assert.ok(!choices.includes('Legacy text prompt'));
 });
 
 test('inactive replies retain their content and disable card and disclosure controls', () => {
@@ -310,6 +312,14 @@ test('response actions and retries bind history to the originating turn', () => 
   assert.deepEqual(previousTurnsFor(turns, 5, 1).map(turn => turn.id), [0, 1]);
   assert.deepEqual(previousTurnsFor(turns, 4).map(turn => turn.id), [0, 1, 2]);
   assert.deepEqual(previousTurnsFor(turns, 0, 0), []);
+});
+
+test('typed follow-ups receive the full catalog scope after a filter button', () => {
+  const turn = { message: 'Up to $35,000', request: { intent: 'browse' }, blocks: [
+    { type: 'context', items: ['2027', 'SUVs', 'AWD', 'Up to $35,000 MSRP'] },
+  ] };
+  assert.equal(turnContext(turn), '2027 · SUVs · AWD · Up to $35,000 MSRP');
+  assert.equal(turnContext({ message: 'What about cargo?', blocks: [] }), 'What about cargo?');
 });
 
 test('transcript includes readable ordered content and omits suggested messages', () => {

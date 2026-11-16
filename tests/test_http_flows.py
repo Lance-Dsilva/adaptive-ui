@@ -66,6 +66,48 @@ class HTTPFlowTests(unittest.TestCase):
                     self.assertTrue(records[0]["trims"])
                     self.assertTrue(records[0]["specifications"])
 
+    def test_structured_catalog_actions_work_without_the_model(self):
+        def perform(**request):
+            response = self.client.post("/catalog/actions", json=request)
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.headers["Cache-Control"], "no-store")
+            return next(block for block in response.json()["blocks"] if block["type"] == "ui")
+
+        with patch("httpx.AsyncClient.send", side_effect=AssertionError("No model call for UI actions")):
+            picker = perform(intent="browse", filters={"body_style": "suv"}, compare=True, focus="engine specs")
+            self.assertTrue(picker["props"]["startComparison"])
+            self.assertEqual(picker["props"]["comparisonFocus"], "engine specs")
+            cars = picker["props"]["cars"]
+            self.assertEqual(len(cars), 3)
+            hybrid = perform(intent="browse", filters={"body_style": "suv", "powertrain": "hybrid", "budget": 45000})
+            self.assertEqual([car["id"] for car in hybrid["props"]["cars"]], ["us-2027-cx90-mhev"])
+            selected = [cars[0]["configurations"][0], cars[1]["configurations"][0]]
+            trims = [trim["trim_id"] for trim in selected]
+            comparison = perform(intent="comparison", trim_ids=trims, focus="engine specs")
+            self.assertEqual(comparison["props"]["question"], "engine specs")
+            self.assertEqual([record["trim_id"] for record in comparison["props"]["records"]], trims)
+            self.assertTrue(all(record["configuration_choices"] for record in comparison["props"]["records"]))
+            spec = {"model_id": cars[0]["id"], "trim_id": trims[0]}
+            for intent, component in (
+                ("details", "VehicleDetails"), ("photos", "VehicleGallery"),
+                ("rotation", "VehicleVisualization"), ("financing", "FinancingOffers"),
+            ):
+                self.assertEqual(perform(intent=intent, **spec)["component"], component)
+            color = perform(intent="colors", **spec)["props"]["records"][0]["colors"][0]
+            preview = perform(intent="color_preview", **spec, color_id=color["color_id"])
+            self.assertEqual(preview["component"], "VehicleDetails")
+            record = preview["props"]["records"][0]
+            self.assertEqual(record["selected_color_id"], color["color_id"])
+            self.assertEqual(record["selected_trim_id"], trims[0])
+            self.assertEqual(perform(intent="test_drive")["component"], "TestDriveRequest")
+            for request in (
+                {"intent": "browse", "message": "show cars"},
+                {"intent": "browse", "filters": {"budget": -1}},
+                {"intent": "comparison", "trim_ids": [trims[0], trims[0]]},
+                {"intent": "color_preview", "model_id": cars[0]["id"], "color_id": "bad"},
+            ):
+                self.assertEqual(self.client.post("/catalog/actions", json=request).status_code, 422)
+
     def test_catalog_actions_reject_unknown_tools_and_models(self):
         for payload in (
             {"tool_name": "render_unknown", "arguments": {"model_id": "us-2027-cx5"}},

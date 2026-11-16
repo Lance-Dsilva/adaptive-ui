@@ -1,7 +1,7 @@
 import { ReplySummary } from './ReplyControls.jsx';
 import { useEffect, useId, useRef, useState } from 'react';
 import { ComparisonPhoto } from './VehicleExperience.jsx';
-import { askAboutVehicle, askShoppingQuestion, askToCompare } from './vehiclePrompts.js';
+import { browseRequest, compareVehicles, openVehicle, runCatalogAction } from './catalogActions.js';
 
 const powertrains = { gasoline: 'Gasoline', mild_hybrid: 'Mild hybrid', plug_in_hybrid: 'Plug-in hybrid' };
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -33,7 +33,7 @@ function configurations(car) {
   }));
 }
 
-export function CarList({ cars, startComparison = false, contextItems = [] }) {
+export function CarList({ cars, startComparison = false, contextItems = [], catalogFilters = {}, comparisonFocus = "" }) {
   const priceFormId = useId();
   const [showFilters, setShowFilters] = useState(false);
   const [limit, setLimit] = useState('');
@@ -47,6 +47,8 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
   const hasPrice = filters.some(item => /^Up to \$/.test(item));
   const hasHybrid = filters.some(item => /\bhybrids?\b/i.test(item));
   const catalogName = [year, 'Mazda', bodyLabels.get(body) || 'models'].filter(Boolean).join(' ');
+  const browse = (label, nextFilters) => runCatalogAction(label,
+    browseRequest(nextFilters, { compare: comparing, focus: comparisonFocus || undefined }));
   const comparison = selected.map(id => cars.find(car => car.id === id)).filter(Boolean);
   const complete = comparing && comparison.length === 2;
   useEffect(() => {
@@ -78,7 +80,7 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
           <ToolbarIcon name="price" />Price
         </button>
         <button type="button" data-applied={hasHybrid || undefined}
-          onClick={() => askShoppingQuestion('Which of these are hybrids?')}>
+          onClick={() => browse('Hybrids', { ...catalogFilters, powertrain: 'hybrid', model_powertrains: {} })}>
           <ToolbarIcon name="hybrid" />Hybrids
         </button>
         <button type="button" className="catalog-compare" aria-pressed={comparing}
@@ -89,7 +91,7 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
       {showFilters && <form id={priceFormId} className="price-filter" onSubmit={event => {
         event.preventDefault();
         if (limit !== '' && Number.isFinite(Number(limit)) && Number(limit) >= 0) {
-          askShoppingQuestion(`Show me the same vehicles under $${limit}.`);
+          browse(`Up to ${usd.format(Number(limit))}`, { ...catalogFilters, budget: Number(limit) });
         }
       }}>
         <label>Maximum starting MSRP
@@ -102,7 +104,7 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
       </form>}
       {filters.length > 0 && <div className="active-filters" aria-label="Applied filters">
         <ul>{filters.map((item, index) => <li key={index}>{item}</li>)}</ul>
-        <button type="button" onClick={() => askShoppingQuestion(`Show me ${catalogName}.`)}>
+        <button type="button" onClick={() => browse('Clear filters', { year: Number(year), body_style: catalogFilters.body_style })}>
           Clear filters
         </button>
       </div>}
@@ -136,7 +138,7 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
       {complete
         ? <button ref={compareButton} className="primary-action compare-submit" type="button"
             disabled={!picks.every(({ trim }) => trim?.trim_id)}
-            onClick={() => askToCompare(picks)}>Compare cars</button>
+            onClick={() => compareVehicles(picks, comparisonFocus)}>Compare cars</button>
         : <p className="selection-note">{comparison.length ? 'Choose one more car.' : 'Choose two cars to compare.'}</p>}
     </section>}
       <div className="catalog-scroll-region" role="region" aria-label="Scrollable Mazda model list" tabIndex="0">
@@ -162,7 +164,7 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
               aria-pressed={comparing ? selected.includes(car.id) : undefined}
               disabled={complete && !selected.includes(car.id)}
               aria-label={comparing ? `${selected.includes(car.id) ? 'Remove' : 'Select'} ${modelName(car.name)} ${selected.includes(car.id) ? 'from' : 'for'} comparison` : `Explore model ${modelName(car.name)}`}
-              onClick={() => comparing ? toggleCar(car.id) : askAboutVehicle('details', car)}>
+              onClick={() => comparing ? toggleCar(car.id) : openVehicle('details', car)}>
               <span aria-hidden="true">{comparing ? selected.includes(car.id) ? '✓' : '+' : '›'}</span>
             </button>
             </div>
@@ -174,16 +176,16 @@ export function CarList({ cars, startComparison = false, contextItems = [] }) {
                   {drives.length > 0 && <li>{drives.join(' / ')}</li>}
                 </ul>
                 <div className="vehicle-card-actions">
-                  <button type="button" onClick={() => askAboutVehicle('details', car)}>Explore model</button>
-                  <button type="button" onClick={() => askAboutVehicle('photos', car)}>View photos</button>
+                  <button type="button" onClick={() => openVehicle('details', car)}>Explore model</button>
+                  <button type="button" onClick={() => openVehicle('photos', car)}>View photos</button>
                 </div>
                 <ul>{configs.map(trim => <li key={trim.trim_id}>
                   <span>{trim.name}<small>{[trim.body_style, trim.drivetrain, trim.seating_capacity && `${trim.seating_capacity} seats`].filter(Boolean).join(' · ')}</small></span>
                   <strong>{price(trim.msrp_usd === '' || trim.msrp_usd == null ? NaN : Number(trim.msrp_usd))}</strong>
                 </li>)}</ul>
                 <div className="filter-actions">
-                  <button type="button" onClick={() => askAboutVehicle('colors', car)}>Colors & materials</button>
-                  <button type="button" onClick={() => askAboutVehicle('financing', car)}>Financing</button>
+                  <button type="button" onClick={() => openVehicle('colors', car)}>Colors & materials</button>
+                  <button type="button" onClick={() => openVehicle('financing', car)}>Financing</button>
                 </div>
               </details>
           </li>;

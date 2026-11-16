@@ -1,6 +1,7 @@
 import { ReplySummary } from './ReplyControls.jsx';
 import { useState } from 'react';
-import { askAboutVehicle, askShoppingQuestion, askToCompare, isEngineComparison, isFullFeatureComparison } from './vehiclePrompts.js';
+import { browseRequest, compareVehicles, openVehicle, runCatalogAction } from './catalogActions.js';
+import { isEngineComparison, isFullFeatureComparison } from './vehiclePrompts.js';
 import VehicleVisualizer, { verifiedSequences } from './VehicleVisualization.jsx';
 import { VehicleEngineSpecs } from './VehicleEngineSpecs.jsx';
 import { isHttpsUrl as https } from './isHttpsUrl.js';
@@ -164,7 +165,7 @@ function Colors({ record }) {
         const trim = record.trims?.find(trim => trim.trim_id === item.trim_id ||
           (item.product_trim_code && trim.product_trim_code === item.product_trim_code));
         return <button key={item.color_id} type="button" aria-pressed={selectedColorId === item.color_id}
-          onClick={() => askAboutVehicle('colors', record, trim ||
+          onClick={() => openVehicle('colors', record, trim ||
             (record.trims?.length === 1 ? record.trims[0] : undefined), item)}>
           <PaintSwatch color={item} />
           <span>{item.name}<small>{item.location} · {trim?.name || 'Model-level availability'}</small></span>
@@ -278,7 +279,7 @@ function Details({ record }) {
       : <OverviewPhoto key={trim.trim_id} record={selected} sequence={sequence} asset={hero} />}
     {!color && record.trims.length > 1 && <label className="vehicle-detail-selector">Configuration
       <select value={trim.trim_id} onChange={event =>
-        askAboutVehicle('details', record, record.trims.find(item => item.trim_id === event.target.value))}>
+        openVehicle('details', record, record.trims.find(item => item.trim_id === event.target.value))}>
         {record.trims.map(item => <option key={item.trim_id} value={item.trim_id}>
           {item.name} · {item.body_style} · {item.drivetrain} · {item.seating_capacity?.split('|').join(' or ')} seats
         </option>)}
@@ -293,13 +294,13 @@ function Details({ record }) {
     </ul>}
     <div className="vehicle-detail-actions">
       {sequence && <button className="vehicle-detail-primary" type="button"
-        onClick={() => askAboutVehicle('rotation', record, trim)}>View 360°</button>}
-      <button type="button" onClick={() => askAboutVehicle('colors', record, trim)}>
+        onClick={() => openVehicle('rotation', record, trim)}>View 360°</button>}
+      <button type="button" onClick={() => openVehicle('colors', record, trim)}>
         {color ? 'Change color' : 'Choose a color'}
       </button>
       {!color && <button className={!sequence ? 'vehicle-detail-photo-primary' : undefined} type="button"
-        onClick={() => askAboutVehicle('photos', record, trim)}>View photos</button>}
-      <button type="button" onClick={() => askAboutVehicle('financing', record, trim)}>Financing</button>
+        onClick={() => openVehicle('photos', record, trim)}>View photos</button>}
+      <button type="button" onClick={() => openVehicle('financing', record, trim)}>Financing</button>
     </div>
     {groups.size
       ? <VehicleSpecs groups={[...groups]} />
@@ -482,6 +483,7 @@ export function CarComparison({ records = [], question = '' }) {
   const metrics = comparisonMetrics.filter(([, match]) => match.test(question));
   const focus = allFeatures ? [] : engineFocus ? ['Engine'] : metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
   const overview = [...summary, ...additionalFacts];
+  const requestedFocus = allFeatures ? 'all features' : engineFocus ? 'engine specs' : focus.join(' and ').toLowerCase();
   function comparisonRowsForFields(selectedFields) {
     return selectedFields.map(field => [factLabel(field), records.map(record =>
       record.specifications.find(item => item.field === field)?.value)]);
@@ -515,7 +517,7 @@ export function CarComparison({ records = [], question = '' }) {
     <header className="comparison-result-heading">
       <h3>{allFeatures ? 'Feature comparison' : focus.length ? `${focus.join(' & ')} comparison` : 'Your comparison'}</h3>
       <button type="button" className="comparison-edit"
-        onClick={() => askShoppingQuestion('Show all 2027 Mazda models.', true)}>Change cars</button>
+        onClick={() => runCatalogAction('Change cars', browseRequest({}, { compare: true, focus: requestedFocus }))}>Change cars</button>
     </header>
     {allFeatures ? <section className="comparison-feature-browser">
       <label>Feature category
@@ -549,7 +551,7 @@ export function CarComparison({ records = [], question = '' }) {
       </div>)}
     </div>
     {changed && <button className="comparison-edit compare-revised" type="button"
-      onClick={() => askToCompare(picks, allFeatures ? 'all features' : engineFocus ? 'engine specs' : focus.join(' and ').toLowerCase())}>Compare cars</button>}
+      onClick={() => compareVehicles(picks, requestedFocus)}>Compare cars</button>}
     {!allFeatures && !focus.length && <dl className="comparison-costs" aria-label="Comparison pricing">
       {[['Base MSRP', 'msrp_usd'], ['Destination', 'destination_usd']].map(([label, field]) =>
         <div key={field}><dt>{label}</dt>{records.map((record, index) =>

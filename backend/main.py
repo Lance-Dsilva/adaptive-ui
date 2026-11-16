@@ -7,21 +7,21 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Annotated, Literal
 from datetime import date, time, datetime
 from zoneinfo import ZoneInfo
 
-from .conversation import curate, selection_for, filter_records, requests_test_drive
+from .conversation import Selection, curate, selection_for, filter_records, requests_test_drive
 from .appointments import test_drive
 from .openai_runtime import OpenAIRuntimeError
 from starlette.concurrency import run_in_threadpool
 
-from .orchestration import CallTool, RunAgentOne, RunAgentTwo, orchestrate
+from .orchestration import CallTool, RunAgentOne, RunAgentTwo, ToolResult, orchestrate
 from .presentation import DiscoveryPresentation
 from .registry import ToolRegistry
 from .settings import load_settings
-from .response_contract import greeting_response, shopping_message, decorate_response
+from .response_contract import context_items, greeting_response, shopping_message, decorate_response
 
 logger = logging.getLogger(__name__)
 project_root = Path(__file__).resolve().parents[1]
@@ -47,6 +47,8 @@ class TranscriptMessage(BaseModel):
 
 
 class VehicleAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     intent: Literal["details", "colors", "color_preview", "photos", "rotation", "financing"]
     model_id: str = Field(min_length=1, max_length=100)
     trim_id: str | None = Field(default=None, max_length=160)
@@ -54,6 +56,8 @@ class VehicleAction(BaseModel):
 
 
 class ComparisonAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     intent: Literal["comparison"]
     focus: str | None = Field(default=None, max_length=400)
     trim_ids: tuple[Annotated[str, Field(min_length=1, max_length=160)],
@@ -68,6 +72,43 @@ VEHICLE_ACTION_TOOLS = {
     "rotation": ("get_vehicle_media", "render_vehicle_visualization"),
     "financing": ("get_financing_offers", "render_financing_offers"),
 }
+
+
+Powertrain = Literal["gasoline", "hybrid", "mild_hybrid", "plug_in_hybrid"]
+
+
+class CatalogFilters(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    year: int = Field(default=2027, ge=2000, le=2099)
+    body_style: Literal["suv", "sedan", "hatchback"] | None = None
+    drivetrain: Literal["FWD", "AWD", "RWD"] | None = None
+    budget: float | None = Field(default=None, ge=0, allow_inf_nan=False)
+    powertrain: Powertrain | None = None
+    models: list[str] = Field(default_factory=list, max_length=8)
+    model_powertrains: dict[str, Powertrain] = Field(default_factory=dict, max_length=8)
+
+
+class BrowseAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    intent: Literal["browse"]
+    filters: CatalogFilters = Field(default_factory=CatalogFilters)
+    compare: bool = False
+    focus: str | None = Field(default=None, max_length=400)
+    priority: Literal["price", "seats"] | None = None
+
+
+class TestDriveAction(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    intent: Literal["test_drive"]
+
+
+CatalogAction = Annotated[
+    VehicleAction | ComparisonAction | BrowseAction | TestDriveAction,
+    Field(discriminator="intent"),
+]
 
 
 class ChatRequest(BaseModel):
@@ -131,6 +172,114 @@ def create_app(
             return {"blocks": blocks}
         except (ValueError, ValidationError):
             raise HTTPException(status_code=422, detail="The requested model or configuration is unavailable.") from None
+
+    @service.post("/catalog/actions")
+    def catalog_action(action: CatalogAction, response: Response) -> dict:
+        from jsonschema.exceptions import ValidationError
+        from .ui_registry import UIRegistry
+
+        response.headers["Cache-Control"] = "no-store"
+        props = {}
+        context = []
+        selected_color_id = None
+        if isinstance(action, BrowseAction):
+            selection = Selection(**action.filters.model_dump())
+            name, ui_tool = "search_cars", "render_car_list"
+            arguments = {"model_year": selection.year, **{
+                key: value for key, value in {
+                    "body_style": selection.body_style, "drivetrain": selection.drivetrain,
+                    "max_msrp_usd": selection.budget,
+                }.items() if value is not None
+            }}
+            context = context_items(selection)
+            props = {"filters": action.filters.model_dump(exclude_none=True),
+                     "startComparison": action.compare, "comparisonFocus": action.focus or ""}
+            fallback = "Published Mazda models matching your selection."
+        elif isinstance(action, ComparisonAction):
+            name, ui_tool = "compare_cars", "render_car_comparison"
+            arguments = {"trim_ids": list(action.trim_ids)}
+            props["question"] = action.focus or ""
+            fallback = "Comparison of the selected vehicle configurations."
+        elif isinstance(action, TestDriveAction):
+            if not test_drive_enabled:
+                raise HTTPException(status_code=404, detail="Test-drive options are unavailable.")
+            name, ui_tool = "get_test_drive_options", "render_test_drive"
+            arguments = {}
+            fallback = "Choose a vehicle and preferred test-drive time."
+        else:
+            name, ui_tool = VEHICLE_ACTION_TOOLS[action.intent]
+            arguments = {"model_id": action.model_id}
+            if action.trim_id:
+                arguments["trim_id"] = action.trim_id
+            if action.intent == "color_preview":
+                if not action.color_id:
+                    raise HTTPException(status_code=422, detail="Choose a color.")
+                selected_color_id = action.color_id
+            elif action.color_id:
+                raise HTTPException(status_code=422, detail="A color is only valid for a preview.")
+            if action.intent == "financing":
+                arguments["as_of"] = datetime.now(ZoneInfo("America/Chicago")).date().isoformat()
+            fallback = "Published information for the selected Mazda."
+
+        try:
+            result = registry.invoke(name, arguments)
+            if isinstance(action, BrowseAction):
+                result["records"] = filter_records(result["records"], selection)
+                if action.priority == "price":
+                    result["records"].sort(key=lambda row: (
+                        row["matching_msrp_usd"] is None, row["matching_msrp_usd"] or 0,
+                    ))
+                elif action.priority == "seats":
+                    result["records"].sort(key=lambda row: max(
+                        (int(seats) for trim in row["trims"] for seats in trim["seating_capacity"].split("|")
+                         if seats.isdecimal()), default=0,
+                    ), reverse=True)
+            if not result["records"]:
+                blocks = [{"type": "text", "text": "No matching published information is available."}]
+                if isinstance(action, BrowseAction):
+                    blocks.append({"type": "context", "items": context})
+                    blocks.append({"type": "actions", "actions": [{
+                        "id": "clear-filters", "label": "Clear filters",
+                        "request": {"intent": "browse", "filters": {
+                            "year": selection.year, "body_style": selection.body_style,
+                        }, "compare": action.compare, "focus": action.focus},
+                    }]})
+                return {"blocks": blocks}
+            for record in result["records"]:
+                if isinstance(action, ComparisonAction) or name == "get_car_details" and action.trim_id:
+                    model = registry.invoke("get_car_details", {"model_id": record["model_id"]})["records"][0]
+                    if isinstance(action, ComparisonAction):
+                        record["configuration_choices"] = model["trims"]
+                    else:
+                        record["trims"] = model["trims"]
+                        record["selected_trim_id"] = action.trim_id
+                if selected_color_id:
+                    if not any(color["color_id"] == selected_color_id for color in record.get("colors", [])):
+                        raise ValueError("Invalid color selection")
+                    record["selected_color_id"] = selected_color_id
+            if isinstance(action, ComparisonAction):
+                fallback = " vs. ".join(
+                    f"{record['model']['name']} {record['name']}" for record in result["records"]
+                )
+            elif isinstance(action, VehicleAction):
+                record = result["records"][0]
+                descriptions = [
+                    record.get("model_year", ""), record.get("name") or record.get("model_name") or "",
+                    next((trim["name"] for trim in record.get("trims", []) if trim["trim_id"] == action.trim_id), ""),
+                    next((color["name"] for color in record.get("colors", []) if color["color_id"] == selected_color_id), ""),
+                ]
+                fallback = " · ".join(value for value in descriptions if value) or fallback
+            source = ToolResult("catalog-action", name, arguments, result)
+            block = UIRegistry(project_root).render(
+                ui_tool, source, list(range(len(result["records"]))), fallback,
+            )
+            block["props"].update(props)
+            blocks = [{"type": "context", "items": context}] if context else []
+            blocks.append({"type": "ui", **block})
+            return {"blocks": blocks}
+        except (ValueError, ValidationError):
+            raise HTTPException(status_code=422, detail="The requested selection is unavailable.",
+                                headers={"Cache-Control": "no-store"}) from None
 
     @service.get("/catalog/models")
     def catalog_models() -> list[dict]:

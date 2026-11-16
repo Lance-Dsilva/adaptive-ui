@@ -142,16 +142,24 @@ def _card_key(card: JSONObject) -> tuple[str, str]:
     return component, dumps(props, sort_keys=True, allow_nan=False)
 
 
+def _is_trim_choice(action: object) -> bool:
+    if not isinstance(action, dict) or not all(
+        isinstance(action.get(key), str) and action[key].strip() for key in ("id", "label")
+    ):
+        return False
+    request = action.get("request")
+    return (isinstance(request, dict)
+            and request.get("intent") in ("details", "colors", "photos", "rotation", "financing")
+            and all(isinstance(request.get(key), str) and request[key].strip() for key in ("model_id", "trim_id")))
+
+
 def _is_choice_result(result: object, fallback: str) -> bool:
     return (
         isinstance(result, dict) and result.get("type") == "actions"
         and result.get("choice") is True and result.get("fallback_text") == fallback
         and isinstance(result.get("label"), str)
         and isinstance(result.get("actions"), list) and 2 <= len(result["actions"]) <= 8
-        and all(isinstance(action, dict) and all(
-            isinstance(action.get(key), str) and bool(action[key].strip())
-            for key in ("id", "label", "message")
-        ) for action in result["actions"])
+        and all(_is_trim_choice(action) for action in result["actions"])
     )
 
 

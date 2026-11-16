@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ResponseBlocks, previousTurnsFor, responseText } from './ResponseBlocks.jsx';
+import { ResponseBlocks, previousTurnsFor, responseText, turnContext } from './ResponseBlocks.jsx';
 import { comparisonFollowup } from './vehiclePrompts.js';
+import { browseRequest } from './catalogActions.js';
 import './styles.css';
 
-const DISCOVER = 'Show me Mazda SUVs.';
-const COMPARE = 'Can you show me what cars are available for 2027?';
 const CHAT_ERRORS = {
   timeout: 'The assistant took too long to respond. Try again.',
   busy: 'The assistant is busy. Try again in a moment.',
@@ -92,36 +91,40 @@ function App() {
 
   useEffect(() => {
     const handler = event => {
-      const action = event.detail;
-      if (typeof action?.message === 'string') {
-        send(action.message, action.compare === true, null, action.vehicleAction);
-      }
+      const { label, request } = event.detail || {};
+      if (typeof label === 'string' && request?.intent) send(label, { request });
     };
-    window.addEventListener('shopping-prompt', handler);
-    return () => window.removeEventListener('shopping-prompt', handler);
+    window.addEventListener('catalog-action', handler);
+    return () => window.removeEventListener('catalog-action', handler);
   });
 
   useEffect(() => () => activeRequest.current?.abort(), []);
 
-  async function send(message, compare = false, retryId = null, action = null, contextTurnId = null) {
+  async function send(message, { request, retryId = null } = {}) {
     const text = message.trim();
     if (!text || activeRequest.current) return;
     const id = retryId ?? nextId.current++;
     const controller = new AbortController();
     activeRequest.current = controller;
-    const previous = previousTurnsFor(turns, id, contextTurnId);
-    action ??= comparisonFollowup(text, previous.at(-1)?.blocks);
-    const history = previous.map(turn => turn.message);
-    const transcript = previous.flatMap(turn => [
-      { role: 'user', content: turn.message },
-      { role: 'assistant', content: responseText(turn.blocks) },
-    ]).slice(-40);
+    let payload = request;
+    if (!request) {
+      const previous = previousTurnsFor(turns, id);
+      payload = {
+        message: text,
+        history: previous.map(turnContext),
+        transcript: previous.flatMap(turn => [
+          { role: 'user', content: turnContext(turn) },
+          { role: 'assistant', content: responseText(turn.blocks) },
+        ]).slice(-40),
+        vehicle_action: comparisonFollowup(text, previous.at(-1)?.blocks),
+      };
+    }
     const timeout = setTimeout(() => controller.abort(), 120000);
     const update = changes => setTurns(current =>
       current.map(turn => turn.id === id ? { ...turn, ...changes } : turn)
     );
     if (retryId === null) {
-      setTurns(current => [...current, { id, message: text, compare, action, contextTurnId }]);
+      setTurns(current => [...current, { id, message: text, request }]);
       setDraft('');
     } else {
       update({ error: false });
@@ -129,11 +132,11 @@ function App() {
     setPending(true);
     let receivedResponse = false;
     try {
-      const response = await fetch('/chat', {
+      const response = await fetch(request ? '/catalog/actions' : '/chat', {
         method: 'POST',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history, transcript, vehicle_action: action }),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
       receivedResponse = true;
@@ -176,7 +179,7 @@ function App() {
             }}>New chat</button>
             {testDriveEnabled && <button type="button" disabled={pending} onClick={() => {
               setMenu(false);
-              send('Book a test drive.');
+              send('Request test drive', { request: { intent: 'test_drive' } });
             }}>Request test drive</button>}
           </div>}
         </div>
@@ -190,8 +193,8 @@ function App() {
             <h1>Find your<br />next Mazda.</h1>
             <p>Explore models, trims, and starting prices.</p>
             <div className="suggestions">
-              <button type="button" onClick={() => send(DISCOVER)}>Explore SUVs <span className="chevron" /></button>
-              <button type="button" onClick={() => send(COMPARE, true)}>Compare models <span className="chevron" /></button>
+              <button type="button" onClick={() => send('Explore SUVs', { request: browseRequest({ body_style: 'suv' }) })}>Explore SUVs <span className="chevron" /></button>
+              <button type="button" onClick={() => send('Compare models', { request: browseRequest({}, { compare: true }) })}>Compare models <span className="chevron" /></button>
             </div>
           </section>
         ) : turns.map((turn, index) => (
@@ -199,13 +202,13 @@ function App() {
             <p className="user-message">{turn.message}</p>
             <div className="reply" aria-live="polite" aria-busy={!turn.blocks && !turn.error}>
               <Icon name="spark" className="spark" />
-              {turn.blocks ? <ResponseBlocks blocks={turn.blocks} compare={turn.compare}
+              {turn.blocks ? <ResponseBlocks blocks={turn.blocks}
                 disabled={index !== turns.length - 1 || pending}
-                onAction={action => send(action.message, action.compare === true, null, action.vehicle_action ?? null, turn.id)} /> : turn.error ? (
+                onAction={action => send(action.label, { request: action.request })} /> : turn.error ? (
                 <div className="chat-error">
                   <p>{CHAT_ERRORS[turn.error]}</p>
                   {turn.error !== 'unavailable' && <button type="button" disabled={index !== turns.length - 1 || pending}
-                    onClick={() => send(turn.message, turn.compare, turn.id, turn.action, turn.contextTurnId ?? null)}>Try again</button>}
+                    onClick={() => send(turn.message, { request: turn.request, retryId: turn.id })}>Try again</button>}
                 </div>
               ) : <p role="status">Working on your request…</p>}
             </div>
