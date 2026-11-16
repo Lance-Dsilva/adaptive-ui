@@ -437,6 +437,33 @@ test('natural engine and mileage follow-up compares published MPG for the select
   }
 });
 
+test('all engine features keeps the selected plug-in hybrid and compares its published powertrain data', () => {
+  const specs = entries => entries.map(([field, value]) => ({ category: 'specification', field, value }));
+  const records = [
+    { trim_id: 'cx5-base', name: '2.5 S', model: { name: 'CX-5', powertrain: 'gasoline' },
+      specifications: specs([['REDLINE', '6,500 rpm'], ['TORQUE WITH 87 OCTANE UNLEADED FUEL', '186 lb-ft']]) },
+    { trim_id: 'cx90-phev-preferred', name: 'PHEV Preferred',
+      model: { name: 'CX-90 Plug-in Hybrid', powertrain: 'plug_in_hybrid' },
+      specifications: specs([['battery_capacity_kwh', '17.8'], ['electric_range_miles_up_to', '27'],
+        ['horsepower_91_aki', '323'], ['torque_lb_ft_91_aki', '369'],
+        ['estimated_combined_mpg_gasoline', '26'], ['estimated_combined_mpge_electric_and_gasoline', '56']]) },
+  ];
+  const question = 'Compare all engine features';
+  const block = { type: 'ui', component: 'CarComparison', props: { records, question } };
+  const action = comparisonFollowup(question, [block]);
+  assert.deepEqual(action, { intent: 'comparison', trim_ids: ['cx5-base', 'cx90-phev-preferred'], focus: 'engine features' });
+  for (const focus of [question, action.focus]) {
+    const html = renderToStaticMarkup(<ResponseBlocks blocks={[{ ...block, props: { records, question: focus } }]} />);
+    const featured = html.slice(0, html.indexOf('class="comparison-models"'));
+    for (const text of ['Engine &amp; fuel economy comparison', '6,500 rpm', '323 hp', '369',
+      'Combined MPG · gasoline', '26', 'Combined MPGe · electric and gasoline', '56', '27', '17.8']) {
+      assert.ok(featured.includes(text), text);
+    }
+    assert.equal((featured.match(/Combined system output/g) || []).length, 2);
+    assert.ok(!html.includes('Comparison pricing'));
+  }
+});
+
 test('specific comparison puts the requested metric above the vehicle cards', () => {
   const records = [
     { trim_id: 'first', name: '2.5 S', model: { name: 'CX-5' }, msrp_usd: '29990',

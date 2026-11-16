@@ -1,7 +1,7 @@
 import { ReplySummary } from './ReplyControls.jsx';
 import { useState } from 'react';
 import { browseRequest, compareVehicles, openVehicle, runCatalogAction } from './catalogActions.js';
-import { fuelEconomyRequest, isEngineComparison, isFullFeatureComparison } from './vehiclePrompts.js';
+import { engineFeaturesRequest, fuelEconomyRequest, isEngineComparison, isFullFeatureComparison } from './vehiclePrompts.js';
 import VehicleVisualizer, { verifiedSequences } from './VehicleVisualization.jsx';
 import { VehicleEngineSpecs } from './VehicleEngineSpecs.jsx';
 import { isHttpsUrl as https } from './isHttpsUrl.js';
@@ -410,7 +410,8 @@ export function CarComparison({ records = [], question = '' }) {
   const [featureGroup, setFeatureGroup] = useState('');
   const allFeatures = isFullFeatureComparison(question);
   const engineFocus = !allFeatures && isEngineComparison(question);
-  const includeMileage = fuelEconomyRequest.test(question);
+  const engineFeatures = engineFocus && engineFeaturesRequest.test(question);
+  const includeMileage = engineFeatures || fuelEconomyRequest.test(question);
   const picks = records.map(record => ({
     car: { year: record.model?.model_year, name: record.model?.name || record.name },
     trim: record.configuration_choices?.find(trim => trim.trim_id === edits[record.trim_id]) || record,
@@ -425,13 +426,18 @@ export function CarComparison({ records = [], question = '' }) {
     ['Seats / rows', records.map(record => [record.seating_capacity, record.seating_rows].filter(Boolean).join(' / '))],
     ['Drivetrain', records.map(record => record.drivetrain)],
     ['Transmission', records.map(record => record.transmission)],
-    ['Powertrain', records.map(record => record.model?.powertrain?.replaceAll('_', ' '))],
+    ['Powertrain', records.map(record => powertrainLabels[record.model?.powertrain] || record.model?.powertrain?.replaceAll('_', ' '))],
   ];
   const overviewFields = [
     ...(engineFocus ? [
       ['Engine type', ['ENGINE TYPE']],
       ['Engine displacement', ['DISPLACEMENT (CC)', 'engine_displacement_l']],
       ['Recommended fuel', ['RECOMMENDED FUEL', 'recommended_fuel']],
+    ] : []),
+    ...(engineFeatures ? [
+      ['Redline', ['REDLINE']],
+      ['Compression ratio', ['COMPRESSION RATIO']],
+      ['Fuel system', ['FUEL SYSTEM']],
     ] : []),
     ['Horsepower · regular 87 AKI', ['horsepower_87_aki', 'HORSEPOWER WITH 87 OCTANE UNLEADED FUEL', 'ENGINE HORSEPOWER WITH REGULAR UNLEADED FUEL', 'system_horsepower_87_octane_spec_deck']],
     ['Horsepower · premium 91 AKI', ['horsepower_91_aki']],
@@ -441,7 +447,8 @@ export function CarComparison({ records = [], question = '' }) {
     ...(engineFocus ? [['Torque · premium fuel (octane unspecified)', ['ENGINE TORQUE WITH PREMIUM UNLEADED FUEL']]] : []),
     ['Torque · premium 91 AKI (lb-ft)', ['torque_lb_ft_91_aki']],
     ['Torque · premium 93 AKI (lb-ft)', ['torque_lb_ft_93_aki']],
-    ['City MPG', ['mpg_city']], ['Highway MPG', ['mpg_highway']], ['Combined MPG', ['mpg_combined', 'estimated_combined_mpg_gasoline']],
+    ['City MPG', ['mpg_city']], ['Highway MPG', ['mpg_highway']],
+    [engineFeatures ? 'Combined MPG · gasoline' : 'Combined MPG', ['mpg_combined', 'estimated_combined_mpg_gasoline']],
     ['Combined MPGe · electric and gasoline', ['estimated_combined_mpge_electric_and_gasoline']],
     ['System horsepower · 93 octane (alternate rating)', ['system_horsepower_93_octane_spec_deck']],
     ['Cargo · rows upright (SAE cu ft)', ['cargo_volume_sae_rows_upright_cubic_feet']],
@@ -471,7 +478,7 @@ export function CarComparison({ records = [], question = '' }) {
         {specValue(item)}{item.field === 'DISPLACEMENT (CC)' && ' cc'}
         {item.field === 'engine_displacement_l' && ' L'}
         {/horsepower/i.test(label) && /^\d+(?:\.\d+)?$/.test(item.value) ? ' hp' : ''}
-        {/horsepower/i.test(label) && records[recordIndex].model?.powertrain === 'plug_in_hybrid' &&
+        {/horsepower|torque/i.test(label) && records[recordIndex].model?.powertrain === 'plug_in_hybrid' &&
           <small>Combined system output</small>}
         {specificationNote(item.applicability) && <small>{specificationNote(item.applicability)}</small>}
       </span>) : null)]);
@@ -484,12 +491,14 @@ export function CarComparison({ records = [], question = '' }) {
   const metrics = comparisonMetrics.filter(([, match]) => match.test(question));
   const focus = allFeatures ? [] : engineFocus ? (includeMileage ? ['Engine', 'fuel economy'] : ['Engine']) : metrics.length ? metrics.map(([label]) => label) : exactFields.map(factLabel);
   const overview = [...summary, ...additionalFacts];
-  const requestedFocus = allFeatures ? 'all features' : engineFocus ? (includeMileage ? 'engine specs and fuel economy' : 'engine specs') : focus.join(' and ').toLowerCase();
+  const requestedFocus = allFeatures ? 'all features' : engineFeatures ? 'engine features' : engineFocus ? (includeMileage ? 'engine specs and fuel economy' : 'engine specs') : focus.join(' and ').toLowerCase();
   function comparisonRowsForFields(selectedFields) {
     return selectedFields.map(field => [factLabel(field), records.map(record =>
       record.specifications.find(item => item.field === field)?.value)]);
   }
-  const focusedRows = engineFocus ? overview.filter(([label]) => engineRow.test(label) || (includeMileage && /\bMPGe?\b/i.test(label)))
+  const focusedRows = engineFocus ? overview.filter(([label]) => engineRow.test(label) ||
+    (includeMileage && /\bMPGe?\b/i.test(label)) ||
+    (engineFeatures && /^(?:Powertrain|Redline|Compression ratio|Fuel system|Electric range|Battery capacity)/.test(label)))
     : metrics.length ? metrics.flatMap(([label, , match]) => {
     const rows = overview.filter(([name]) => match.test(name));
     if (rows.length) return rows;

@@ -92,7 +92,9 @@ def cx90_choice_actions(message, selection, candidates):
     if selection.mode == "comparison":
         if re.search(r"\b(?:all|every|full|complete) (?:features?|specs?|specifications?|equipment)\b", message, re.I):
             focus = "all features"
-        elif re.search(r"\bengine (?:specs?|specifications?)\b", message, re.I):
+        elif re.search(r"\bengines? (?:features?|equipment)\b", message, re.I):
+            focus = "engine features"
+        elif re.search(r"\bengine (?:details?|specs?|specifications?)\b", message, re.I):
             focus = "engine specs"
         else:
             focus = " and ".join(
